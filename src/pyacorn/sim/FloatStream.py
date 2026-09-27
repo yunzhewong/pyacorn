@@ -4,6 +4,7 @@ import threading
 import time
 from typing import Callable, Optional
 
+from pyacorn.protocols.Chainable import UpstreamChainable
 from pyacorn.utils import CallbackMap
 
 def should_output(last_time: float, current_time: float, output_period_s: float):
@@ -42,6 +43,9 @@ class FloatStream():
         self._abort_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
+    def chain(self, item: UpstreamChainable[list[float]]):
+        self.params.callback_map.add(item.execute)
+        
     def _handle(self):
         output_time = time.time()
         while not self._abort_event.is_set():
@@ -60,3 +64,4 @@ class FloatStream():
         self._abort_event.set()
         if self._thread is not None:
             self._thread.join()
+
