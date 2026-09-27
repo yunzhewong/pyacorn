@@ -7,11 +7,11 @@ class UpstreamChainable[T](Protocol):
     def execute(self, data: T):
         ...
 
-class DownstreamChainable[T](Protocol):
+class DownstreamChainable(Protocol):
     """
     Able to have other things chaining downstream from its output
     """
-    def chain(self, item: UpstreamChainable[T]) -> type[UpstreamChainable[T]]:
+    def chain[T: UpstreamChainable](self, item: T) -> T:
         ...
 
     
