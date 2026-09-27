@@ -1,17 +1,17 @@
 from typing import Protocol
 
-class UpstreamChainable[T](Protocol):
+class Upstream[T](Protocol):
     """
     Able to chain to something which outputs data
     """
     def execute(self, data: T):
         ...
 
-class DownstreamChainable(Protocol):
+class Downstream(Protocol):
     """
     Able to have other things chaining downstream from its output
     """
-    def chain[T: UpstreamChainable](self, item: T) -> T:
+    def chain[T: Upstream](self, item: T) -> T:
         ...
 
     

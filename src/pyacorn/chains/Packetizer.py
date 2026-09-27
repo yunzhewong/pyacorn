@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from pyacorn.protocols.Chainable import UpstreamChainable
+from pyacorn.protocols import chainable
 from pyacorn.utils import CallbackMap
 
 @dataclass
@@ -14,7 +14,7 @@ class UntimestampedStreamPacketizer():
         self.sample_period_s = sample_period_s
         self.running_count = 0
 
-    def chain(self, item: UpstreamChainable[Packet]):
+    def chain(self, item: chainable.Upstream[Packet]):
         self.callback_map.add(item.execute)
 
     def execute(self, data: list[float]):
