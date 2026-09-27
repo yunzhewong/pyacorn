@@ -46,10 +46,9 @@ class FloatStream():
         output_time = time.time()
         while not self._abort_event.is_set():
             loop_time = time.time()
-            if should_output(last_time=output_time, current_time=loop_time, output_period_s=self.params.output_period_s):
+            if not should_output(last_time=output_time, current_time=loop_time, output_period_s=self.params.output_period_s):
                 time.sleep(calc_output_pause(self.params.output_period_s / 2))
                 continue
-
             output_time = self.params.execute(last_time=output_time, current_time=loop_time)
 
     def start(self):
