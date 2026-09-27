@@ -37,7 +37,7 @@ class SerialConnection():
 
 class SerialConsumer():
     def __init__(self, port: str, on_data: Callable[[bytes], None]):
-        callback_map = CallbackMap[bytes]({})
+        callback_map = CallbackMap[bytes]()
         self.callback_id = callback_map.add(on_data)
         self.connection = SerialConnection(port=port, callback_map=callback_map)
         self.thread: Optional[threading.Thread] = None

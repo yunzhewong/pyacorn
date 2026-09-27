@@ -1,21 +1,21 @@
-from typing import Callable, TypeVar
+from typing import Callable, Generic, TypeVar
 
 I = TypeVar("I")
 
-class CallbackMap(dict[int, Callable[[I], None]]):
-    def __init__(self, iterable):
-        super().__init__(iterable)
+class CallbackMap(Generic[I]):
+    def __init__(self):
+        self.d: dict[int, Callable[[I], None]] = {}
         self.key_counter = 0
 
     def add(self, callback: Callable[[I], None]) -> int:
         callback_key = self.key_counter
-        self[callback_key] = callback
+        self.d[callback_key] = callback
         self.key_counter += 1
         return callback_key
 
     def remove(self, key):
-        del self[key]
+        del self.d[key]
 
     def execute(self, data: I):
-        for callback in self.values():
+        for callback in self.d.values():
             callback(data)

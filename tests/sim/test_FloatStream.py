@@ -35,7 +35,7 @@ def test_sim_stream_execute():
     def append_outputs(data: list[float]):
         outputs.append(data)
 
-    callback_map = CallbackMap({})
+    callback_map = CallbackMap()
     callback_map.add(append_outputs)
 
     params = Parameters(func=func, sample_period_s=0.1, output_period_s=1, callback_map=callback_map)
