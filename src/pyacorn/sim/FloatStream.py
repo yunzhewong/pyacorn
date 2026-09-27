@@ -15,7 +15,7 @@ def calc_output_pause(output_period_s: float):
 def calc_elapsed_readings(start_time: float, end_time: float, sample_period_s: float) -> int:
     return math.floor((end_time - start_time) / sample_period_s)
 
-def generate_sim_values(func: Callable[[float], float], start_time: float, number_of_readings: int, sample_period_s: float) -> list[float]:
+def generate_float_array(func: Callable[[float], float], start_time: float, number_of_readings: int, sample_period_s: float) -> list[float]:
     values: list[float] = []
     for i in range(number_of_readings):
         reading_time = start_time + i * sample_period_s
@@ -24,7 +24,7 @@ def generate_sim_values(func: Callable[[float], float], start_time: float, numbe
     return values
 
 @dataclass
-class SimStreamParameters():
+class Parameters():
     func: Callable[[float], float]
     sample_period_s: float
     output_period_s: float
@@ -32,13 +32,13 @@ class SimStreamParameters():
 
     def execute(self, last_time: float, current_time: float) -> float:
         elapsed_readings = calc_elapsed_readings(start_time=last_time, end_time=current_time, sample_period_s=self.sample_period_s)
-        values = generate_sim_values(func=self.func, start_time=last_time, number_of_readings=elapsed_readings, sample_period_s=self.sample_period_s)
+        values = generate_float_array(func=self.func, start_time=last_time, number_of_readings=elapsed_readings, sample_period_s=self.sample_period_s)
         self.callback_map.execute(values)
         return last_time + elapsed_readings * self.sample_period_s 
 
-class SimStream():
+class FloatStream():
     def __init__(self, func: Callable[[float], float], sample_period_s: float, output_period_s: float, callback_map: CallbackMap[list[float]]):
-        self.params = SimStreamParameters(func=func, sample_period_s=sample_period_s, output_period_s=output_period_s, callback_map=callback_map)
+        self.params = Parameters(func=func, sample_period_s=sample_period_s, output_period_s=output_period_s, callback_map=callback_map)
         self._abort_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
 

@@ -1,6 +1,6 @@
 import pytest
 
-from pyacorn.sim.SimStream import SimStreamParameters, calc_output_pause, should_output, calc_elapsed_readings, generate_sim_values
+from pyacorn.sim.FloatStream import Parameters, calc_output_pause, should_output, calc_elapsed_readings, generate_float_array
 from pyacorn.utils import CallbackMap
 
 def test_should_output():
@@ -23,7 +23,7 @@ def test_generation():
     def func(val: float):
         return val
 
-    values = generate_sim_values(func=func, start_time=0, number_of_readings=10, sample_period_s=0.1)
+    values = generate_float_array(func=func, start_time=0, number_of_readings=10, sample_period_s=0.1)
 
     assert values == pytest.approx([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
 
@@ -38,7 +38,7 @@ def test_sim_stream_execute():
     callback_map = CallbackMap({})
     callback_map.add(append_outputs)
 
-    params = SimStreamParameters(func=func, sample_period_s=0.1, output_period_s=1, callback_map=callback_map)
+    params = Parameters(func=func, sample_period_s=0.1, output_period_s=1, callback_map=callback_map)
 
     new_time = params.execute(0, 1)
     assert new_time == 1
