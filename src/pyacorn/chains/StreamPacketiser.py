@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 
-from pyacorn.chains.Body import Body
-from pyacorn.protocols import chainable
-from pyacorn.utils import CallbackMap
+from pyacorn.chains.base import Body
 
 @dataclass
 class Packet():
