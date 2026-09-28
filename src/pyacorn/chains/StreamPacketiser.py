@@ -5,7 +5,7 @@ from pyacorn.utils import CallbackMap
 
 @dataclass
 class Packet():
-    start_time: float
+    running_count: float
     sample_period_s: float
     values: list[float]
 
@@ -15,9 +15,9 @@ class StreamPacketiserMemory():
     running_count: int
 
     def pack_from_stream(self, data: list[float]) -> Packet:
-        time = self.running_count * self.sample_period_s
+        running_count = self.running_count
         self.running_count += len(data)
-        return Packet(start_time=time, sample_period_s=self.sample_period_s, values=data)
+        return Packet(running_count=running_count, sample_period_s=self.sample_period_s, values=data)
 
 class StreamPacketiser():
     def __init__(self, sample_period_s: float):
