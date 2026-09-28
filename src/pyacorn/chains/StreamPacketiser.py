@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from pyacorn.chains.Body import Body
 from pyacorn.protocols import chainable
 from pyacorn.utils import CallbackMap
 
@@ -19,15 +20,10 @@ class StreamPacketiserMemory():
         self.running_count += len(data)
         return Packet(running_count=running_count, sample_period_s=self.sample_period_s, values=data)
 
-class StreamPacketiser():
+class StreamPacketiser(Body[list[float], Packet]):
     def __init__(self, sample_period_s: float):
-        self.callback_map: CallbackMap[Packet] = CallbackMap()
+        super().__init__()
         self._memory = StreamPacketiserMemory(sample_period_s=sample_period_s, running_count=0) 
 
-    def chain(self, item: chainable.Upstream[Packet]):
-        self.callback_map.add(item.execute)
-
-    def execute(self, data: list[float]):
-        packet = self._memory.pack_from_stream(data)
-        self.callback_map.execute(packet)
-
+    def operate(self, data: list[float]) -> Packet:
+        return self._memory.pack_from_stream(data)
