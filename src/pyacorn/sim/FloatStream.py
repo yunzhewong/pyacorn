@@ -4,6 +4,7 @@ import threading
 import time
 from typing import Callable, Optional
 
+from pyacorn.chains.base import Head
 from pyacorn.protocols import chainable
 from pyacorn.utils import CallbackMap
 
@@ -37,7 +38,7 @@ class Parameters():
         self.callback_map.execute(values)
         return last_time + elapsed_readings * self.sample_period_s 
 
-class FloatStream():
+class FloatStream(Head[list[float]]):
     def __init__(self, func: Callable[[float], float], sample_period_s: float, output_period_s: float, callback_map: CallbackMap[list[float]]):
         self.params = Parameters(func=func, sample_period_s=sample_period_s, output_period_s=output_period_s, callback_map=callback_map)
         self._abort_event = threading.Event()
@@ -45,6 +46,7 @@ class FloatStream():
 
     def chain(self, item: chainable.Upstream[list[float]]):
         self.params.callback_map.add(item.execute)
+        return item
         
     def _handle(self):
         output_time = time.time()
