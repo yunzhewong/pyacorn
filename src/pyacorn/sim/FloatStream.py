@@ -17,8 +17,8 @@ def calc_output_pause(output_period_s: float):
 def calc_elapsed_readings(start_time: float, end_time: float, sample_period_s: float) -> int:
     return math.floor((end_time - start_time) / sample_period_s)
 
-def generate_float_array(func: Callable[[float], float], start_time: float, number_of_readings: int, sample_period_s: float) -> list[float]:
-    values: list[float] = []
+def generate_timed_array[T](func: Callable[[float], T], start_time: float, number_of_readings: int, sample_period_s: float) -> list[T]:
+    values: list[T] = []
     for i in range(number_of_readings):
         reading_time = start_time + i * sample_period_s
         reading_value = func(reading_time)
@@ -26,25 +26,25 @@ def generate_float_array(func: Callable[[float], float], start_time: float, numb
     return values
 
 @dataclass
-class Parameters():
-    func: Callable[[float], float]
+class Parameters[T]():
+    func: Callable[[float], T]
     sample_period_s: float
     output_period_s: float
     callback_map: CallbackMap
 
     def execute(self, last_time: float, current_time: float) -> float:
         elapsed_readings = calc_elapsed_readings(start_time=last_time, end_time=current_time, sample_period_s=self.sample_period_s)
-        values = generate_float_array(func=self.func, start_time=last_time, number_of_readings=elapsed_readings, sample_period_s=self.sample_period_s)
+        values = generate_timed_array(func=self.func, start_time=last_time, number_of_readings=elapsed_readings, sample_period_s=self.sample_period_s)
         self.callback_map.execute(values)
         return last_time + elapsed_readings * self.sample_period_s 
 
-class FloatStream(Head[list[float]]):
-    def __init__(self, func: Callable[[float], float], sample_period_s: float, output_period_s: float, callback_map: CallbackMap[list[float]]):
+class SimStream[T](Head[list[T]]):
+    def __init__(self, func: Callable[[float], T], sample_period_s: float, output_period_s: float, callback_map: CallbackMap[list[T]]):
         self.params = Parameters(func=func, sample_period_s=sample_period_s, output_period_s=output_period_s, callback_map=callback_map)
         self._abort_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
-    def chain(self, item: chainable.Upstream[list[float]]):
+    def chain(self, item: chainable.Upstream[list[T]]):
         self.params.callback_map.add(item.execute)
         return item
         

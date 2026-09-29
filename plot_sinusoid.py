@@ -3,7 +3,7 @@ import queue
 import time
 
 from pyacorn.chains.StreamPacketiser import StreamPacketiser
-from pyacorn.sim.FloatStream import FloatStream
+from pyacorn.sim.FloatStream import SimStream
 from pyacorn.utils import CallbackMap
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,7 +11,7 @@ import numpy as np
 def func(t: float):
     return math.sin(2*math.pi*t)
 
-stream = FloatStream(func, sample_period_s=0.01, output_period_s=0.1, callback_map=CallbackMap())
+stream = SimStream(func, sample_period_s=0.01, output_period_s=0.1, callback_map=CallbackMap())
 packetiser = StreamPacketiser(sample_period_s=0.01)
 packetiser.callback_map.add(callback=print)
 stream.chain(packetiser)
