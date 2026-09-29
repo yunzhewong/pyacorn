@@ -16,9 +16,9 @@ import numpy as np
 def func(t: float):
     return math.sin(2*math.pi*t)
 
-stream = sim.Stream(func, sample_period_s=0.01, output_period_s=0.1, callback_map=CallbackMap())
+stream = sim.Stream(func, sample_period_s=0.01, output_period_s=1/30, callback_map=CallbackMap())
 packetiser = StreamPacketiser(sample_period_s=0.01)
-buffer = Buffer(max_size=4)
+buffer = Buffer(max_size=60)
 
 def expand(packets: list[Packet]) -> PlotValues:
     times = []
@@ -35,33 +35,22 @@ def expand(packets: list[Packet]) -> PlotValues:
     return PlotValues(times=times, values=values)
 
 expander = Lambda(func=expand)
-# plotter = Plotter()
-plt.ion()
-fig, ax = plt.subplots()
-x = np.linspace(0, 1, num=100)
-y = np.zeros(x.shape)
-line, = ax.plot(x, y, 'b-')
-ax.set_ylim(bottom=-1, top=1)
-plt.show()
-
-time.sleep(1)
-
+plotter = Plotter()
 
 stream.chain(packetiser)
 packetiser.chain(buffer)
 buffer.chain(expander)
-# expander.chain(plotter)
+expander.chain(plotter)
 
 stream.start()
 
 start_time = time.time()
 def should_stop():
-    return time.time() - start_time > 2     
+    return time.time() - start_time > 5     
 
-time.sleep(2)
-# plotter.block(should_stop=should_stop)
+plotter.block(should_stop=should_stop)
 
 stream.stop_and_join()
 plt.ioff()
 plt.show()
-# plotter.show()
+plotter.show()

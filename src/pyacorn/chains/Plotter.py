@@ -39,6 +39,7 @@ class Plotter(Tail[PlotValues]):
                 self.line.set_ydata(plot_values.values)
                 self.fig.canvas.draw()
                 self.fig.canvas.flush_events()
+                plt.pause(1/60)
             except queue.Empty:
                 pass
 
