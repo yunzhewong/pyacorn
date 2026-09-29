@@ -2,8 +2,11 @@ import math
 import queue
 import time
 
+import matplotlib
+
 from pyacorn.chains.Buffer import Buffer
 from pyacorn.chains.Lambda import Lambda
+from pyacorn.chains.Plotter import PlotValues, Plotter
 from pyacorn.chains.StreamPacketiser import Packet, StreamPacketiser
 from pyacorn import sim
 from pyacorn.utils import CallbackMap
@@ -17,41 +20,48 @@ stream = sim.Stream(func, sample_period_s=0.01, output_period_s=0.1, callback_ma
 packetiser = StreamPacketiser(sample_period_s=0.01)
 buffer = Buffer(max_size=4)
 
-def print_size(d: list[Packet]):
-    print(len(d), d)
-printer = Lambda(func=print_size)
-stream.chain(packetiser)
-packetiser.chain(buffer)
-buffer.chain(printer)
+def expand(packets: list[Packet]) -> PlotValues:
+    times = []
+    values = []
+    
+    for packet in packets:
+        for i, value in enumerate(packet.values):
+            index = packet.running_count + i
+            time = index * packet.sample_period_s
+            times.append(time)
+            values.append(value)
 
+    print(PlotValues(times=times, values=values))
+    return PlotValues(times=times, values=values)
 
-callback_map = CallbackMap()
-
-data_queue = queue.Queue[list[float]]()
-def callback(data: list[float]):
-    data_queue.put(data)
-
-callback_map.add(callback=callback)
-
+expander = Lambda(func=expand)
+# plotter = Plotter()
 plt.ion()
 fig, ax = plt.subplots()
 x = np.linspace(0, 1, num=100)
 y = np.zeros(x.shape)
 line, = ax.plot(x, y, 'b-')
 ax.set_ylim(bottom=-1, top=1)
+plt.show()
+
+time.sleep(1)
+
+
+stream.chain(packetiser)
+packetiser.chain(buffer)
+buffer.chain(expander)
+# expander.chain(plotter)
 
 stream.start()
 
 start_time = time.time()
-while time.time() - start_time < 2:
-    try:
-        data = data_queue.get(timeout=0.1)
-        line.set_ydata(data[:100])
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-    except queue.Empty:
-        pass
+def should_stop():
+    return time.time() - start_time > 2     
+
+time.sleep(2)
+# plotter.block(should_stop=should_stop)
 
 stream.stop_and_join()
 plt.ioff()
 plt.show()
+# plotter.show()
