@@ -1,6 +1,6 @@
 import pytest
 
-from pyacorn.sim.FloatStream import Parameters, calc_output_pause, should_output, calc_elapsed_readings, generate_timed_array
+from pyacorn.sim import Parameters, calc_output_pause, should_output, calc_elapsed_readings, generate_timed_array
 from pyacorn.utils import CallbackMap
 
 def test_should_output():

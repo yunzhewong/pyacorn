@@ -38,7 +38,7 @@ class Parameters[T]():
         self.callback_map.execute(values)
         return last_time + elapsed_readings * self.sample_period_s 
 
-class SimStream[T](Head[list[T]]):
+class Stream[T](Head[list[T]]):
     def __init__(self, func: Callable[[float], T], sample_period_s: float, output_period_s: float, callback_map: CallbackMap[list[T]]):
         self.params = Parameters(func=func, sample_period_s=sample_period_s, output_period_s=output_period_s, callback_map=callback_map)
         self._abort_event = threading.Event()
