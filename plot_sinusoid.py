@@ -2,7 +2,9 @@ import math
 import queue
 import time
 
-from pyacorn.chains.StreamPacketiser import StreamPacketiser
+from pyacorn.chains.Buffer import Buffer
+from pyacorn.chains.Lambda import Lambda
+from pyacorn.chains.StreamPacketiser import Packet, StreamPacketiser
 from pyacorn import sim
 from pyacorn.utils import CallbackMap
 import matplotlib.pyplot as plt
@@ -13,8 +15,15 @@ def func(t: float):
 
 stream = sim.Stream(func, sample_period_s=0.01, output_period_s=0.1, callback_map=CallbackMap())
 packetiser = StreamPacketiser(sample_period_s=0.01)
-packetiser.callback_map.add(callback=print)
+buffer = Buffer(max_size=4)
+
+def print_size(d: list[Packet]):
+    print(len(d), d)
+printer = Lambda(func=print_size)
 stream.chain(packetiser)
+packetiser.chain(buffer)
+buffer.chain(printer)
+
 
 callback_map = CallbackMap()
 
