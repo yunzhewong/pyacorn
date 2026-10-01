@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 import queue
-import threading
 from typing import Callable
 
 from matplotlib import pyplot as plt
-import matplotlib
 import numpy as np
 
 from pyacorn.chains.base import Tail
@@ -30,17 +28,22 @@ class Plotter(Tail[PlotValues]):
 
     def block(self, should_stop: Callable[[], bool]):
         while not should_stop():
+            last = None
             try:
+                while True:  
+                    last = self.queue.get(block=False)
+            except queue.Empty:
+                pass
+
+            if last is not None:
                 plot_values = self.queue.get(timeout=0.1)
-                self.line.set_xdata(plot_values.times)
                 self.ax.set_xlim(left=min(plot_values.times), right=max(plot_values.times))
                 self.ax.set_ylim(bottom=min(plot_values.values), top=max(plot_values.values))
+                self.line.set_xdata(plot_values.times)
                 self.line.set_ydata(plot_values.values)
                 self.fig.canvas.draw()
                 self.fig.canvas.flush_events()
-                plt.pause(1/60)
-            except queue.Empty:
-                pass
+            plt.pause(1/60)
 
     def show(self):
         plt.ioff()

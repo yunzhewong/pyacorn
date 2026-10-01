@@ -3,6 +3,7 @@ from pyacorn.chains.base import Body
 
 class Buffer[T](Body[T, list[T]]):
     def __init__(self, max_size: int):
+        super().__init__()
         self.buffered_data: list[T] = []
         self.max_size = max_size
 

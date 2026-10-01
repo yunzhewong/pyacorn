@@ -5,7 +5,6 @@ import time
 from typing import Callable, Optional
 
 from pyacorn.chains.base import Head
-from pyacorn.protocols import chainable
 
 def should_output(last_time: float, current_time: float, output_period_s: float):
     return current_time - last_time > output_period_s

@@ -2,25 +2,26 @@ import math
 import time
 
 from pyacorn.chains.Buffer import Buffer
-from pyacorn.chains.lambdas import PacketExpander
-from pyacorn.chains.Plotter import Plotter
+from pyacorn.chains.lambdas import PacketExpander, Printer
+from pyacorn.chains.Plotter import PlotValues, Plotter
 from pyacorn.chains.StreamPacketiser import Packet, StreamPacketiser
 from pyacorn import sim
 
 def func(t: float):
     return math.sin(2*math.pi*t)
 
-stream = sim.Stream(func, sample_period_s=0.001, output_period_s=1/60)
-packetiser = StreamPacketiser(sample_period_s=0.001)
+stream = sim.Stream(func, sample_period_s=1/50_000, output_period_s=1/60)
+packetiser = StreamPacketiser(sample_period_s=1/50_000)
 buffer = Buffer[Packet](max_size=60)
 expander = PacketExpander()
+# printer = Printer[PlotValues](transform=lambda t: t.times)
 plotter = Plotter()
 
 stream.chain(packetiser)
 packetiser.chain(buffer)
 buffer.chain(expander)
 expander.chain(plotter)
-
+# expander.chain(printer)
 stream.start()
 
 start_time = time.time()
