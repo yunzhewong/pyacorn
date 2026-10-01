@@ -7,7 +7,7 @@ class Head[O](abc.ABC):
     def __init__(self):
         self.callback_map = CallbackMap[O]()
 
-    def chain(self, item: chainable.Upstream[O]) -> chainable.Upstream[O]:
+    def chain(self, item: chainable.Upstream[O]):
         self.callback_map.add(item.execute)
         return item
     
@@ -18,7 +18,7 @@ class Body[I, O](abc.ABC):
     def __init__(self):
         self.callback_map = CallbackMap[O]()
 
-    def chain(self, item: chainable.Upstream[O]) -> chainable.Upstream[O]:
+    def chain(self, item: chainable.Upstream[O]):
         self.callback_map.add(item.execute)
         return item
 

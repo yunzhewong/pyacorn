@@ -24,7 +24,6 @@ class Plotter(Tail[PlotValues]):
         x = np.linspace(0, 1, num=100)
         y = np.zeros(x.shape)
         self.line, = self.ax.plot(x, y, 'b-')
-        print(matplotlib.get_backend())
 
     def execute(self, data: PlotValues):
         self.queue.put(item=data)

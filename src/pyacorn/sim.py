@@ -6,7 +6,6 @@ from typing import Callable, Optional
 
 from pyacorn.chains.base import Head
 from pyacorn.protocols import chainable
-from pyacorn.utils import CallbackMap
 
 def should_output(last_time: float, current_time: float, output_period_s: float):
     return current_time - last_time > output_period_s
@@ -30,22 +29,21 @@ class Parameters[T]():
     func: Callable[[float], T]
     sample_period_s: float
     output_period_s: float
-    callback_map: CallbackMap
 
-    def execute(self, last_time: float, current_time: float) -> float:
+    def execute(self, last_time: float, current_time: float) -> tuple[float, list[T]]:
         elapsed_readings = calc_elapsed_readings(start_time=last_time, end_time=current_time, sample_period_s=self.sample_period_s)
         values = generate_timed_array(func=self.func, start_time=last_time, number_of_readings=elapsed_readings, sample_period_s=self.sample_period_s)
-        self.callback_map.execute(values)
-        return last_time + elapsed_readings * self.sample_period_s 
+        return last_time + elapsed_readings * self.sample_period_s, values 
 
 class Stream[T](Head[list[T]]):
-    def __init__(self, func: Callable[[float], T], sample_period_s: float, output_period_s: float, callback_map: CallbackMap[list[T]]):
-        self.params = Parameters(func=func, sample_period_s=sample_period_s, output_period_s=output_period_s, callback_map=callback_map)
+    def __init__(self, func: Callable[[float], T], sample_period_s: float, output_period_s: float):
+        super().__init__()
+        self.params = Parameters(func=func, sample_period_s=sample_period_s, output_period_s=output_period_s)
         self._abort_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
     def chain(self, item: chainable.Upstream[list[T]]):
-        self.params.callback_map.add(item.execute)
+        self.callback_map.add(item.execute)
         return item
         
     def _handle(self):
@@ -55,7 +53,8 @@ class Stream[T](Head[list[T]]):
             if not should_output(last_time=output_time, current_time=loop_time, output_period_s=self.params.output_period_s):
                 time.sleep(calc_output_pause(self.params.output_period_s / 2))
                 continue
-            output_time = self.params.execute(last_time=output_time, current_time=loop_time)
+            output_time, values = self.params.execute(last_time=output_time, current_time=loop_time)
+            self.callback_map.execute(values)
 
     def start(self):
         self._abort_event.clear()

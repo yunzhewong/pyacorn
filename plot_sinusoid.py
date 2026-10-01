@@ -1,40 +1,19 @@
 import math
-import queue
 import time
 
-import matplotlib
-
 from pyacorn.chains.Buffer import Buffer
-from pyacorn.chains.Lambda import Lambda
-from pyacorn.chains.Plotter import PlotValues, Plotter
+from pyacorn.chains.lambdas import PacketExpander
+from pyacorn.chains.Plotter import Plotter
 from pyacorn.chains.StreamPacketiser import Packet, StreamPacketiser
 from pyacorn import sim
-from pyacorn.utils import CallbackMap
-import matplotlib.pyplot as plt
-import numpy as np
 
 def func(t: float):
     return math.sin(2*math.pi*t)
 
-stream = sim.Stream(func, sample_period_s=0.01, output_period_s=1/30, callback_map=CallbackMap())
-packetiser = StreamPacketiser(sample_period_s=0.01)
-buffer = Buffer(max_size=60)
-
-def expand(packets: list[Packet]) -> PlotValues:
-    times = []
-    values = []
-    
-    for packet in packets:
-        for i, value in enumerate(packet.values):
-            index = packet.running_count + i
-            time = index * packet.sample_period_s
-            times.append(time)
-            values.append(value)
-
-    print(PlotValues(times=times, values=values))
-    return PlotValues(times=times, values=values)
-
-expander = Lambda(func=expand)
+stream = sim.Stream(func, sample_period_s=0.001, output_period_s=1/60)
+packetiser = StreamPacketiser(sample_period_s=0.001)
+buffer = Buffer[Packet](max_size=60)
+expander = PacketExpander()
 plotter = Plotter()
 
 stream.chain(packetiser)
@@ -51,6 +30,4 @@ def should_stop():
 plotter.block(should_stop=should_stop)
 
 stream.stop_and_join()
-plt.ioff()
-plt.show()
 plotter.show()

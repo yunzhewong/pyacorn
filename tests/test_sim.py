@@ -1,7 +1,6 @@
 import pytest
 
 from pyacorn.sim import Parameters, calc_output_pause, should_output, calc_elapsed_readings, generate_timed_array
-from pyacorn.utils import CallbackMap
 
 def test_should_output():
     assert should_output(last_time=0, current_time=1, output_period_s=0.5)
@@ -31,26 +30,16 @@ def test_sim_stream_execute():
     def func(t: float):
         return t
 
-    outputs: list[list[float]] = []
-    def append_outputs(data: list[float]):
-        outputs.append(data)
+    params = Parameters(func=func, sample_period_s=0.1, output_period_s=1)
 
-    callback_map = CallbackMap()
-    callback_map.add(append_outputs)
-
-    params = Parameters(func=func, sample_period_s=0.1, output_period_s=1, callback_map=callback_map)
-
-    new_time = params.execute(0, 1)
+    new_time, outputs = params.execute(0, 1)
     assert new_time == 1
-    assert len(outputs) == 1
-    assert outputs[0] == pytest.approx([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+    assert outputs == pytest.approx([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
 
-    new_time = params.execute(1, 1.95)
+    new_time, outputs = params.execute(1, 1.95)
     assert new_time == 1.9
-    assert len(outputs) == 2
-    assert outputs[1] == pytest.approx([1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8])
+    assert outputs == pytest.approx([1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8])
 
-    new_time = params.execute(1.9, 2.5)
+    new_time, outputs = params.execute(1.9, 2.5)
     assert new_time == 2.5
-    assert len(outputs) == 3
-    assert outputs[2] == pytest.approx([1.9, 2, 2.1, 2.2, 2.3, 2.4])
+    assert outputs == pytest.approx([1.9, 2, 2.1, 2.2, 2.3, 2.4])
