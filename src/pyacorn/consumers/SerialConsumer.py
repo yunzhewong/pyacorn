@@ -1,57 +1,38 @@
+import queue
 import time
-from typing import Callable, Optional
+from typing import Optional
 
 import serial
 import threading
 
-from pyacorn.utils import CallbackMap
-
 class SerialConnection():
-    def __init__(self, port: str, callback_map: CallbackMap[bytes]):
+    def __init__(self, port: str):
         self.port = port
-        self.callback_map = callback_map
-        self.abort_event = threading.Event()
 
-    def handle(self):
+    def handle(self, abort_event: threading.Event, output_queue: queue.Queue[bytes]):
         connection = serial.Serial(port=self.port, baudrate=9600, timeout=0.1)
-        while not self.abort_event.is_set():
+        while not abort_event.is_set():
             data = connection.read(8192)   # blocks until timeout or newline
-            self.callback_map.execute(data)
+            output_queue.put(data)
         connection.close()
 
-    def abort(self):
-        self.abort_event.set()
-
-    def clear(self):
-        self.abort_event.clear()
-
-    def start(self):
-        self.abort_event.clear()
-        self._thread = threading.Thread(target=self.handle)
-        self._thread.start()
-        
-    def stop(self):
-        self.abort_event.set()
-        if self._thread is not None:
-            self._thread.join()
-
 class SerialConsumer():
-    def __init__(self, port: str, on_data: Callable[[bytes], None]):
-        callback_map = CallbackMap[bytes]()
-        self.callback_id = callback_map.add(on_data)
-        self.connection = SerialConnection(port=port, callback_map=callback_map)
-        self.thread: Optional[threading.Thread] = None
+    def __init__(self, port: str):
+        self.output_queue = queue.Queue[bytes]()
+        self._abort_event = threading.Event()
+        self._connection = SerialConnection(port=port)
+        self._thread: Optional[threading.Thread] = None
 
     def start(self):
-        self.connection.clear()
-        self.thread = threading.Thread(target=self.connection.handle)
-        self.thread.start()
+        self._abort_event.clear()
+        self._thread = threading.Thread(target=self._connection.handle, args=(self._abort_event, self.output_queue,))
+        self._thread.start()
 
     def stop_and_join(self):
-        self.connection.abort()
-        if self.thread:
-            self.thread.join()
-            self.thread = None
+        self._abort_event.set()
+        if self._thread:
+            self._thread.join()
+            self._thread = None
 
 if __name__ == "__main__":
     count = 0
