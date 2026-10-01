@@ -41,10 +41,6 @@ class Stream[T](Head[list[T]]):
         self.params = Parameters(func=func, sample_period_s=sample_period_s, output_period_s=output_period_s)
         self._abort_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
-
-    def chain(self, item: chainable.Upstream[list[T]]):
-        self.callback_map.add(item.execute)
-        return item
         
     def _handle(self):
         output_time = time.time()

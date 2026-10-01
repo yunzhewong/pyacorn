@@ -8,9 +8,6 @@ class Upstream[T](Protocol):
     def execute(self, data: T):
         ...
 
-    def get_input_type(self) -> type:
-        ...
-
 
 @runtime_checkable
 class Downstream(Protocol):
@@ -18,7 +15,4 @@ class Downstream(Protocol):
     Able to have other things chaining downstream from its output
     """
     def chain[T: Upstream](self, item: T) -> T:
-        ...
-
-    def get_output_type(self) -> type:
         ...

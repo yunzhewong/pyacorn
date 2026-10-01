@@ -14,9 +14,6 @@ class Head[O](abc.ABC):
     def initiate(self, data: O):
         self.callback_map.execute(data)
 
-    def get_output_type(self):
-        return type(O)
-
 class Body[I, O](abc.ABC):
     def __init__(self):
         self.callback_map = CallbackMap[O]()
@@ -29,20 +26,11 @@ class Body[I, O](abc.ABC):
         output = self.operate(data)
         self.callback_map.execute(output)
 
-    def get_input_type(self):
-        return type(I)
-
-    def get_output_type(self):
-        return type(O)
-
     @abc.abstractmethod
     def operate(self, data: I) -> O:
         ...
 
 class Tail[I](abc.ABC):
-    def get_input_type(self):
-        return type(I)
-
     @abc.abstractmethod
     def execute(self, data: I):
         ...
