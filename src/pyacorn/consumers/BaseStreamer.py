@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from pyacorn.chains.base import Body, Head
+
 
 DELIMITER = 0xFF
 CAPTURE_BUFFER_SIZE = 2000
@@ -37,12 +39,13 @@ class Packet[T]():
     counter: int
     data: T
 
-class PacketGrouper():
+class PacketGrouper(Head[list[Packet[bytes]]]):
     def __init__(self):
+        super().__init__()
         self.buffer = bytes()
 
-    def add(self, new_data: bytes) -> list[Packet[bytes]]:
-        self.buffer += new_data
+    def add_data(self, data: bytes):
+        self.buffer += data
         output = []
         while len(self.buffer) >= 3 + CAPTURE_BUFFER_SIZE:
             skip = 0
@@ -57,13 +60,13 @@ class PacketGrouper():
             if len(self.buffer) < 3 + CAPTURE_BUFFER_SIZE:
                 break
  
-            data = self.buffer[:3 + CAPTURE_BUFFER_SIZE]
+            buffer_bytes = self.buffer[:3 + CAPTURE_BUFFER_SIZE]
             self.buffer = self.buffer[3 + CAPTURE_BUFFER_SIZE:]
 
-            packet_counter = data[1]
-            data_bytes = data[2:2+CAPTURE_BUFFER_SIZE]
-            crc = data[2 + CAPTURE_BUFFER_SIZE]
+            packet_counter = buffer_bytes[1]
+            data_bytes = buffer_bytes[2:2+CAPTURE_BUFFER_SIZE]
+            crc = buffer_bytes[2 + CAPTURE_BUFFER_SIZE]
             if crc8(data_bytes) != crc:
                 continue
             output.append(Packet(counter=packet_counter, data=data_bytes))
-        return output
+        self.initiate(output)
