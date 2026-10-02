@@ -28,35 +28,42 @@ def crc8(data: bytes, init: int = 0xFF, poly: int = 0x07) -> int:
 #         crc = _TABLE[crc ^ byte]
 #     return crc
 
+VOLTAGE_SCALE_FACTOR = 3.3 * (1 << 8)
 def to_voltage(byte: int):
-    return 3.3 * (byte / (1 << 8)) 
+    return byte * VOLTAGE_SCALE_FACTOR 
 
 @dataclass
-class Packet():
+class Packet[T]():
     counter: int
-    values: list[float]
+    data: T
 
-class BaseStreamer():
+class PacketGrouper():
     def __init__(self):
         self.buffer = bytes()
 
-    def add(self, new_data: bytes) -> list[Packet]:
+    def add(self, new_data: bytes) -> list[Packet[bytes]]:
         self.buffer += new_data
         output = []
         while len(self.buffer) >= 3 + CAPTURE_BUFFER_SIZE:
             skip = 0
-            while self.buffer[skip] != DELIMITER:
+            while self.buffer[skip] != DELIMITER and skip < len(self.buffer):
                 skip += 1
-            if len(self.buffer) - skip < 3 + CAPTURE_BUFFER_SIZE:
-                self.buffer = self.buffer[skip:]
-                break
-            data = self.buffer[skip: skip + 3 + CAPTURE_BUFFER_SIZE]
-            self.buffer = self.buffer[skip + 3 + CAPTURE_BUFFER_SIZE:]
 
-            if crc8(data[2:2 + CAPTURE_BUFFER_SIZE]) != data[2 + CAPTURE_BUFFER_SIZE]:
-                continue
+            if skip > len(self.buffer):
+                self.buffer = bytes()
+                break
+
+            self.buffer = self.buffer[skip:]
+            if len(self.buffer) < 3 + CAPTURE_BUFFER_SIZE:
+                break
+ 
+            data = self.buffer[:3 + CAPTURE_BUFFER_SIZE]
+            self.buffer = self.buffer[3 + CAPTURE_BUFFER_SIZE:]
+
+            packet_counter = data[1]
             data_bytes = data[2:2+CAPTURE_BUFFER_SIZE]
-            values = [to_voltage(byte) for byte in data_bytes]
-            output.append(Packet(counter=data[1], values=values))
-        print(output)
+            crc = data[2 + CAPTURE_BUFFER_SIZE]
+            if crc8(data_bytes) != crc:
+                continue
+            output.append(Packet(counter=packet_counter, data=data_bytes))
         return output
