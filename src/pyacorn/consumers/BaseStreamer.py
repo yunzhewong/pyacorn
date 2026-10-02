@@ -46,7 +46,7 @@ class PacketGrouper(Head[list[Packet[bytes]]]):
 
     def add_data(self, data: bytes):
         self.buffer += data
-        output = []
+        output: list[Packet[bytes]] = []
         while len(self.buffer) >= 3 + CAPTURE_BUFFER_SIZE:
             skip = 0
             while self.buffer[skip] != DELIMITER and skip < len(self.buffer):
@@ -69,4 +69,4 @@ class PacketGrouper(Head[list[Packet[bytes]]]):
             if crc8(data_bytes) != crc:
                 continue
             output.append(Packet(counter=packet_counter, data=data_bytes))
-        self.initiate(output)
+        return output

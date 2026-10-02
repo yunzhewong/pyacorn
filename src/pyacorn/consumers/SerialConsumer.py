@@ -33,26 +33,3 @@ class SerialConsumer():
         if self._thread:
             self._thread.join()
             self._thread = None
-
-if __name__ == "__main__":
-    count = 0
-    prev_time = time.time()
-    times: list[float] = []
-    def callback(bytes: bytes):
-        global count, prev_time
-        count += len(bytes)
-        current_time = time.time()
-        times.append(current_time - prev_time)
-        prev_time = current_time
-
-    consumer = SerialConsumer(port="/dev/ttyACM0", on_data=callback)
-    consumer.start()
-
-    time.sleep(5)
-    consumer.stop_and_join()
-
-    print(count)
-
-    bytes_per_second = count / 5 
-    print(f"Bytes per second: {bytes_per_second}")
-    print(sum(times) / len(times))
