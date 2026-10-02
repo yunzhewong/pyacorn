@@ -5,17 +5,6 @@ from typing import Optional
 import serial
 import threading
 
-class SerialConnection():
-    def __init__(self, port: str):
-        self.port = port
-
-    def handle(self, abort_event: threading.Event, output_queue: queue.Queue[bytes]):
-        connection = serial.Serial(port=self.port, baudrate=9600, timeout=0.1)
-        while not abort_event.is_set():
-            data = connection.read(8192)   # blocks until timeout or newline
-            output_queue.put(data)
-        connection.close()
-
 class SerialConsumer():
     def __init__(self, port: str):
         self.output_queue = queue.Queue[bytes]()
