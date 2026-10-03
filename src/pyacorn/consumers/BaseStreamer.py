@@ -32,7 +32,7 @@ def crc8(data: bytes, init: int = 0xFF, poly: int = 0x07) -> int:
 
 @dataclass
 class ByteMetadata():
-    packet_counter: int
+    rolling_packet_counter: int
 
 @dataclass
 class Packet[M, T]():

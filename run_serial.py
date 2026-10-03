@@ -8,7 +8,7 @@ import serial
 
 from pyacorn.chains.base import Head
 from pyacorn.chains.lambdas import Printer
-from pyacorn.consumers.BaseStreamer import ByteMetadata, Packet, SerialBuffer
+from pyacorn.consumers.BaseStreamer import CAPTURE_BUFFER_SIZE, ByteMetadata, Packet, SerialBuffer
 
 
 class SerialConnection():
@@ -61,21 +61,35 @@ class SerialPacketReader():
         for thread in self._threads:
             thread.join()
 
+ROLLOVER_VALUE = 1 << 8
+class RolloverCountHistory:
+    def __init__(self):
+        self.last_rollover = -1
+        self.last_accounted = -1
 
-@dataclass
+    def account_for_rollover(self, rollover_count: int) -> int:
+        if self.last_rollover == -1 or self.last_accounted == -1:
+            self.last_rollover = rollover_count
+            self.last_accounted = rollover_count
+            return self.last_accounted
+
+        rollover_difference = (rollover_count + ROLLOVER_VALUE - self.last_rollover) % ROLLOVER_VALUE
+        self.last_rollover = rollover_count
+        self.last_accounted += rollover_difference
+        return self.last_accounted
+
+@dataclass(frozen=True)
 class FastPicoMetadata:
-    packet_counter: int
-    spacing_s: float
+    start_sample: int
+    bytes_per_float: int = 1
+    spacing_s: float = 3.3 / (1 << 8)
+    scale_factor: float = 1 / 500_000
 
-SCALE_FACTOR = 3.3 / (1 << 8)
-SPACING_S = 1 / 500_000
-
-class FastPicoOscilloscope(Head[Packet[FastPicoMetadata, list[float]]]):
+class FastPicoOscilloscope(Head[Packet[FastPicoMetadata, bytes]]):
     def __init__(self, port: str):
         super().__init__()
         self.reader = SerialPacketReader(port=port, on_packet=self._handle_packet)
-        self.last_rollover_counter = -1
-        self.last_counter = -1
+        self.rollover_count_history = RolloverCountHistory()
 
     def start(self):
         self.reader.start()
@@ -84,18 +98,13 @@ class FastPicoOscilloscope(Head[Packet[FastPicoMetadata, list[float]]]):
         self.reader.stop()
 
     def _handle_packet(self, packet: Packet[ByteMetadata, bytes]):
-        rollover_counter = packet.metadata.packet_counter
-        if self.last_counter != -1:
-            packet_counter = self.last_counter
-            self.last_rollover_counter = rollover_counter
-            self.last_counter = packet_counter
-        scaled_packet = Packet(counter=packet.counter, data=[data_byte * SCALE_FACTOR for data_byte in packet.data])
-        self.initiate(scaled_packet)
-
+        packet_counter = self.rollover_count_history.account_for_rollover(packet.metadata.rolling_packet_counter)
+        start_sample = packet_counter * CAPTURE_BUFFER_SIZE
+        self.initiate(Packet(metadata=FastPicoMetadata(start_sample=start_sample), data=packet.data))
 
 if __name__ == "__main__":
     oscilloscope = FastPicoOscilloscope(port="/dev/ttyACM0")
-    oscilloscope.chain(Printer(transform=lambda ps: ps[0].data[0]))
+    oscilloscope.chain(Printer(transform=lambda ps: ps.data[0]))
     oscilloscope.start()
 
     try:
