@@ -39,13 +39,13 @@ class Packet[T]():
     counter: int
     data: T
 
-class PacketGrouper(Head[list[Packet[bytes]]]):
+class SerialBuffer(Head[list[Packet[bytes]]]):
     def __init__(self):
         super().__init__()
         self.buffer = bytes()
 
-    def add_data(self, data: bytes):
-        self.buffer += data
+    def handle_new_data(self, new_data: bytes):
+        self.buffer += new_data
         output: list[Packet[bytes]] = []
         while len(self.buffer) >= 3 + CAPTURE_BUFFER_SIZE:
             skip = 0

@@ -7,11 +7,8 @@ import serial
 
 from pyacorn.chains.base import Head
 from pyacorn.chains.lambdas import Printer
-from pyacorn.consumers.BaseStreamer import Packet, PacketGrouper
+from pyacorn.consumers.BaseStreamer import Packet, SerialBuffer
 
-SCALE_FACTOR = 3.3 / (1 << 8)
-def convert_to_voltage(packets: list[Packet]) -> list[Packet[list[float]]]:
-    return [Packet(counter=packet.counter, data=[data_byte * SCALE_FACTOR for data_byte in packet.data]) for packet in packets]
 
 class SerialConnection():
     def __init__(self, port: str, output_queue: queue.Queue[bytes]):
@@ -25,28 +22,27 @@ class SerialConnection():
             self.output_queue.put(data)
         connection.close()
 
-class PacketParser():
-    def __init__(self, input_queue: queue.Queue[bytes], callback: Callable[[list[Packet[list[float]]]], None]):
-        self.grouper = PacketGrouper()
+class PacketBuffer():
+    def __init__(self, input_queue: queue.Queue[bytes], on_packet: Callable[[Packet[bytes]], None]):
+        self.buffer = SerialBuffer()
         self.input_queue = input_queue
-        self.callback = callback
+        self.callback = on_packet
 
     def handle(self, abort_event: threading.Event):
         while not abort_event.is_set():
             try:
                 new_data = self.input_queue.get(block=False)
-                packed_data = self.grouper.add_data(new_data)
-                converted_data = convert_to_voltage(packets=packed_data)
-                self.callback(converted_data)
+                received_packets = self.buffer.handle_new_data(new_data)
+                for packet in received_packets:
+                    self.callback(packet)
             except queue.Empty:
                 pass
 
-class FastPicoOscilloscope(Head[list[Packet[list[float]]]]):
-    def __init__(self, port: str):
-        super().__init__()
+class SerialPacketReader():
+    def __init__(self, port: str, on_packet: Callable[[Packet[bytes]]]):
         shared_queue = queue.Queue[bytes]()
         self.serial_connection = SerialConnection(port=port, output_queue=shared_queue)
-        self.grouper = PacketParser(input_queue=shared_queue, callback=self.initiate)
+        self.packet_buffer = PacketBuffer(input_queue=shared_queue, on_packet=on_packet)
         self._threads: list[threading.Thread] = []
         self._abort_event = threading.Event()
 
@@ -54,15 +50,33 @@ class FastPicoOscilloscope(Head[list[Packet[list[float]]]]):
         self._abort_event.clear()
         self._threads = [
             threading.Thread(target=self.serial_connection.handle, args=(self._abort_event, )),
-            threading.Thread(target=self.grouper.handle, args=(self._abort_event, ))
+            threading.Thread(target=self.packet_buffer.handle, args=(self._abort_event, ))
         ]
         for thread in self._threads:
             thread.start()
 
-    def stop_and_join(self):
+    def stop(self):
         self._abort_event.set()
         for thread in self._threads:
             thread.join()
+
+
+SCALE_FACTOR = 3.3 / (1 << 8)
+class FastPicoOscilloscope(Head[Packet[list[float]]]):
+    def __init__(self, port: str):
+        super().__init__()
+        self.reader = SerialPacketReader(port=port, on_packet=self._handle_packet)
+
+    def start(self):
+        self.reader.start()
+
+    def stop(self):
+        self.reader.stop()
+
+    def _handle_packet(self, packet: Packet[bytes]):
+        scaled_packet = Packet(counter=packet.counter, data=[data_byte * SCALE_FACTOR for data_byte in packet.data])
+        self.initiate(scaled_packet)
+
 
 if __name__ == "__main__":
     oscilloscope = FastPicoOscilloscope(port="/dev/ttyACM0")
@@ -74,4 +88,4 @@ if __name__ == "__main__":
             time.sleep(1)
     except KeyboardInterrupt:
         pass
-    oscilloscope.stop_and_join()
+    oscilloscope.stop()
