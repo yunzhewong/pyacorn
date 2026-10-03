@@ -30,23 +30,23 @@ def crc8(data: bytes, init: int = 0xFF, poly: int = 0x07) -> int:
 #         crc = _TABLE[crc ^ byte]
 #     return crc
 
-VOLTAGE_SCALE_FACTOR = 3.3 * (1 << 8)
-def to_voltage(byte: int):
-    return byte * VOLTAGE_SCALE_FACTOR 
+@dataclass
+class ByteMetadata():
+    packet_counter: int
 
 @dataclass
-class Packet[T]():
-    counter: int
+class Packet[M, T]():
+    metadata: M
     data: T
 
-class SerialBuffer(Head[list[Packet[bytes]]]):
+class SerialBuffer(Head[list[Packet[ByteMetadata, bytes]]]):
     def __init__(self):
         super().__init__()
         self.buffer = bytes()
 
     def handle_new_data(self, new_data: bytes):
         self.buffer += new_data
-        output: list[Packet[bytes]] = []
+        output: list[Packet[ByteMetadata, bytes]] = []
         while len(self.buffer) >= 3 + CAPTURE_BUFFER_SIZE:
             skip = 0
             while self.buffer[skip] != DELIMITER and skip < len(self.buffer):
@@ -68,5 +68,5 @@ class SerialBuffer(Head[list[Packet[bytes]]]):
             crc = buffer_bytes[2 + CAPTURE_BUFFER_SIZE]
             if crc8(data_bytes) != crc:
                 continue
-            output.append(Packet(counter=packet_counter, data=data_bytes))
+            output.append(Packet(metadata=ByteMetadata(counter=packet_counter), data=data_bytes))
         return output

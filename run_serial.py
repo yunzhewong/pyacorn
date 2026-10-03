@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import queue
 import threading
 import time
@@ -7,7 +8,7 @@ import serial
 
 from pyacorn.chains.base import Head
 from pyacorn.chains.lambdas import Printer
-from pyacorn.consumers.BaseStreamer import Packet, SerialBuffer
+from pyacorn.consumers.BaseStreamer import ByteMetadata, Packet, SerialBuffer
 
 
 class SerialConnection():
@@ -23,7 +24,7 @@ class SerialConnection():
         connection.close()
 
 class PacketBuffer():
-    def __init__(self, input_queue: queue.Queue[bytes], on_packet: Callable[[Packet[bytes]], None]):
+    def __init__(self, input_queue: queue.Queue[bytes], on_packet: Callable[[Packet[ByteMetadata, bytes]], None]):
         self.buffer = SerialBuffer()
         self.input_queue = input_queue
         self.callback = on_packet
@@ -39,7 +40,7 @@ class PacketBuffer():
                 pass
 
 class SerialPacketReader():
-    def __init__(self, port: str, on_packet: Callable[[Packet[bytes]]]):
+    def __init__(self, port: str, on_packet: Callable[[Packet[ByteMetadata, bytes]]]):
         shared_queue = queue.Queue[bytes]()
         self.serial_connection = SerialConnection(port=port, output_queue=shared_queue)
         self.packet_buffer = PacketBuffer(input_queue=shared_queue, on_packet=on_packet)
@@ -61,11 +62,20 @@ class SerialPacketReader():
             thread.join()
 
 
+@dataclass
+class FastPicoMetadata:
+    packet_counter: int
+    spacing_s: float
+
 SCALE_FACTOR = 3.3 / (1 << 8)
-class FastPicoOscilloscope(Head[Packet[list[float]]]):
+SPACING_S = 1 / 500_000
+
+class FastPicoOscilloscope(Head[Packet[FastPicoMetadata, list[float]]]):
     def __init__(self, port: str):
         super().__init__()
         self.reader = SerialPacketReader(port=port, on_packet=self._handle_packet)
+        self.last_rollover_counter = -1
+        self.last_counter = -1
 
     def start(self):
         self.reader.start()
@@ -73,7 +83,12 @@ class FastPicoOscilloscope(Head[Packet[list[float]]]):
     def stop(self):
         self.reader.stop()
 
-    def _handle_packet(self, packet: Packet[bytes]):
+    def _handle_packet(self, packet: Packet[ByteMetadata, bytes]):
+        rollover_counter = packet.metadata.packet_counter
+        if self.last_counter != -1:
+            packet_counter = self.last_counter
+            self.last_rollover_counter = rollover_counter
+            self.last_counter = packet_counter
         scaled_packet = Packet(counter=packet.counter, data=[data_byte * SCALE_FACTOR for data_byte in packet.data])
         self.initiate(scaled_packet)
 
