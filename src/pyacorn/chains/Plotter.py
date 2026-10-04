@@ -24,6 +24,7 @@ class Plotter(Tail[PlotValues]):
         self.line, = self.ax.plot(x, y, 'b-')
 
     def execute(self, data: PlotValues):
+        print("sent")
         self.queue.put(item=data)
 
     def block(self, should_stop: Callable[[], bool]):
@@ -31,16 +32,18 @@ class Plotter(Tail[PlotValues]):
             last = None
             try:
                 while True:  
-                    last = self.queue.get(block=False)
+                    last = self.queue.get()
+                    print("received")
             except queue.Empty:
                 pass
 
             if last is not None:
-                plot_values = self.queue.get(timeout=0.1)
-                self.ax.set_xlim(left=min(plot_values.times), right=max(plot_values.times))
-                self.ax.set_ylim(bottom=min(plot_values.values), top=max(plot_values.values))
-                self.line.set_xdata(plot_values.times)
-                self.line.set_ydata(plot_values.values)
+                self.ax.set_xlim(left=min(last.times), right=max(last.times))
+                self.ax.set_ylim(bottom=min(last.values), top=max(last.values))
+
+                print(min(last.values), max(last.values))
+                self.line.set_xdata(last.times)
+                self.line.set_ydata(last.values)
                 self.fig.canvas.draw()
                 self.fig.canvas.flush_events()
             plt.pause(1/60)

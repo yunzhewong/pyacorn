@@ -117,58 +117,44 @@ class FastPicoOscilloscope(Head[Packet[FastPicoMetadata, bytes]]):
 _DTYPES = {1: "<u1", 2: "<u2", 4: "<u4", 8: "<u8"}  # little-endian, unsigned
 
 if __name__ == "__main__":
-    convert_time: list[float] = []
-    downsample_time: list[float] = []
-    to_values_time: list[float] = []
-
-
-    def convert_to_values(packet: Packet[FastPicoMetadata, bytes]) -> Packet[FastPicoMetadata, NDArray[np.float64]]:
-        start_time = time.time()
-
+    def convert_to_values(packet: Packet[FastPicoMetadata, bytes]) -> Packet[FastPicoMetadata, NDArray[np.int8]]:
         number_of_values = round(CAPTURE_BUFFER_SIZE / packet.metadata.bytes_per_float)
-        
         values = np.frombuffer(packet.data, dtype=_DTYPES[packet.metadata.bytes_per_float], count=number_of_values)
-        # values = raw * packet.metadata.scale_factor  # float64 array
-        # values = raw * 1.0  # float64 array
-        convert_time.append(time.time() - start_time)
         return Packet(metadata=packet.metadata, data=values)
 
-    def downsample(packet: Packet[FastPicoMetadata, list[float]]) -> Packet[SampleMetadata, list[float]]:
-        cycle_time = time.time()
-        SAMPLES = 10
+    def downsample(packet: Packet[FastPicoMetadata, NDArray[np.int8]]) -> Packet[SampleMetadata, NDArray[np.int8]]:
+        SAMPLES = 1000
         downsampled_spacing_s = packet.metadata.spacing_s * SAMPLES
         downsampled_count = int(len(packet.data) / SAMPLES)
-        downsampled_values: list[float] = [packet.data[i * SAMPLES] for i in range(downsampled_count)] 
+        downsampled_values: NDArray[np.int8] = np.empty(downsampled_count, dtype=np.int8)
+        for i in range(downsampled_count):
+            downsampled_values[i] = packet.data[i * SAMPLES]
         start_time = packet.metadata.start_sample * packet.metadata.spacing_s
-        downsample_time.append(time.time() - cycle_time)
         return Packet(metadata=SampleMetadata(start_time=start_time, spacing_s=downsampled_spacing_s), data=downsampled_values)
 
-    def to_plot_values(packets: list[Packet[SampleMetadata, list[float]]]) -> PlotValues:
-        start_time = time.time()
+    def to_plot_values(packets: list[Packet[SampleMetadata, NDArray[np.int8]]]) -> PlotValues:
         times: list[float] = []
         values: list[float] = []
         
         for packet in packets:
             new_times = [i * packet.metadata.spacing_s + packet.metadata.start_time for i in range(len(packet.data))]
             times += new_times
-            values += packet.data
-        to_values_time.append(time.time() - start_time)
+            values += [item * 3.3 / (1 << 8) for item in packet.data]
+
         return PlotValues(times=times, values=values)
 
     oscilloscope = FastPicoOscilloscope(port="/dev/ttyACM0")
     to_values_lambda = Lambda(func=convert_to_values) 
     downsample_lambda = Lambda(func=downsample)
-    buffer = Buffer(max_size=1) # one second of buffer
+    buffer = Buffer[Packet[SampleMetadata, NDArray[np.int8]]](max_size=1) # one second of buffer
     to_plotvalues_lambda = Lambda(func=to_plot_values)
-    # plotter = Plotter()
-    printer = Printer()
+    plotter = Plotter()
 
     oscilloscope.chain(to_values_lambda)
     to_values_lambda.chain(downsample_lambda)
     downsample_lambda.chain(buffer)
     buffer.chain(to_plotvalues_lambda)
-    to_plotvalues_lambda.chain(printer)
-    # to_plotvalues_lambda.chain(plotter)
+    to_plotvalues_lambda.chain(plotter)
     
     oscilloscope.start()
 
@@ -176,14 +162,9 @@ if __name__ == "__main__":
     def should_stop():
         return time.time() - start_time  > 2
     print(f"Started: {time.time()}")
-    while not should_stop():
-        pass
-    # plotter.block(should_stop=should_stop)
+    plotter.block(should_stop=should_stop)
     print(f"Stopped: {time.time()}")
 
     oscilloscope.stop()
 
-    print(sum(convert_time), len(convert_time))
-    print(sum(downsample_time), len(downsample_time))
-    print(sum(to_values_time), len(to_values_time))
-    # plotter.show()    
+    plotter.show()    
