@@ -68,5 +68,5 @@ class SerialBuffer(Head[list[Packet[ByteMetadata, bytes]]]):
             crc = buffer_bytes[2 + CAPTURE_BUFFER_SIZE]
             if crc8(data_bytes) != crc:
                 continue
-            output.append(Packet(metadata=ByteMetadata(counter=packet_counter), data=data_bytes))
+            output.append(Packet(metadata=ByteMetadata(rolling_packet_counter=packet_counter), data=data_bytes))
         return output
