@@ -4,7 +4,9 @@ import queue
 import threading
 import time
 from typing import Callable
+from numpy.typing import NDArray
 
+import numpy as np
 import serial
 
 from pyacorn.chains.Plotter import Plotter, PlotValues
@@ -112,28 +114,28 @@ class FastPicoOscilloscope(Head[Packet[FastPicoMetadata, bytes]]):
         start_sample = packet_counter * CAPTURE_BUFFER_SIZE
         self.initiate(Packet(metadata=FastPicoMetadata(start_sample=start_sample), data=packet.data))
 
+_DTYPES = {1: "<u1", 2: "<u2", 4: "<u4", 8: "<u8"}  # little-endian, unsigned
+
 if __name__ == "__main__":
     convert_time: list[float] = []
     downsample_time: list[float] = []
     to_values_time: list[float] = []
 
-    def convert_to_values(packet: Packet[FastPicoMetadata, bytes]) -> Packet[FastPicoMetadata, list[float]]:
-        start_time = time.time()
-        number_of_values = round(CAPTURE_BUFFER_SIZE / packet.metadata.bytes_per_float)
 
-        values: list[float] = []
-        for i in range(number_of_values):
-            start_index = i * packet.metadata.bytes_per_float
-            value_bytes = packet.data[start_index: start_index + packet.metadata.bytes_per_float]
-            value_integer = int.from_bytes(value_bytes, byteorder='little') # verify byte order later
-            value = packet.metadata.scale_factor * value_integer
-            values.append(value)
+    def convert_to_values(packet: Packet[FastPicoMetadata, bytes]) -> Packet[FastPicoMetadata, NDArray[np.float64]]:
+        start_time = time.time()
+
+        number_of_values = round(CAPTURE_BUFFER_SIZE / packet.metadata.bytes_per_float)
+        
+        values = np.frombuffer(packet.data, dtype=_DTYPES[packet.metadata.bytes_per_float], count=number_of_values)
+        # values = raw * packet.metadata.scale_factor  # float64 array
+        # values = raw * 1.0  # float64 array
         convert_time.append(time.time() - start_time)
         return Packet(metadata=packet.metadata, data=values)
 
     def downsample(packet: Packet[FastPicoMetadata, list[float]]) -> Packet[SampleMetadata, list[float]]:
         cycle_time = time.time()
-        SAMPLES = 2000
+        SAMPLES = 10
         downsampled_spacing_s = packet.metadata.spacing_s * SAMPLES
         downsampled_count = int(len(packet.data) / SAMPLES)
         downsampled_values: list[float] = [packet.data[i * SAMPLES] for i in range(downsampled_count)] 
