@@ -7,9 +7,10 @@ import numpy as np
 
 from pyacorn.chains.Plotter import Plotter, PlotValues
 from pyacorn.chains.Buffer import Buffer
-from pyacorn.chains.lambdas import Lambda, Printer
-from pyacorn.oscilloscopes.fast_pico import FAST_PICO_CAPTURE_BUFFER_SIZE, FastPicoMetadata, FastPicoOscilloscope
+from pyacorn.chains.lambdas import Lambda
 from pyacorn.serial_adapter import Packet
+
+import pyacorn.oscilloscopes.fast_pico as fast_pico
 
 @dataclass
 class SampleMetadata:
@@ -20,12 +21,12 @@ class SampleMetadata:
 _DTYPES = {1: "<u1", 2: "<u2", 4: "<u4", 8: "<u8"}  # little-endian, unsigned
 
 if __name__ == "__main__":
-    def convert_to_values(packet: Packet[FastPicoMetadata, bytes]) -> Packet[FastPicoMetadata, NDArray[np.uint8]]:
-        number_of_values = round(FAST_PICO_CAPTURE_BUFFER_SIZE/ packet.metadata.bytes_per_float)
+    def convert_to_values(packet: Packet[fast_pico.Metadata, bytes]) -> Packet[fast_pico.Metadata, NDArray[np.uint8]]:
+        number_of_values = round(fast_pico.CAPTURE_BUFFER_SIZE/ packet.metadata.bytes_per_float)
         values = np.frombuffer(packet.data, dtype=_DTYPES[packet.metadata.bytes_per_float], count=number_of_values)
         return Packet(metadata=packet.metadata, data=values)
 
-    def downsample(packet: Packet[FastPicoMetadata, NDArray[np.uint8]]) -> Packet[SampleMetadata, NDArray[np.uint8]]:
+    def downsample(packet: Packet[fast_pico.Metadata, NDArray[np.uint8]]) -> Packet[SampleMetadata, NDArray[np.uint8]]:
         SAMPLES = 2000
         downsampled_spacing_s = packet.metadata.spacing_s * SAMPLES
         downsampled_count = math.floor(len(packet.data) / SAMPLES)
@@ -50,10 +51,10 @@ if __name__ == "__main__":
             run_index = stop_index
         return PlotValues(times=times, values=values)
 
-    oscilloscope = FastPicoOscilloscope(port="/dev/ttyACM0")
+    oscilloscope = fast_pico.Oscilloscope(port="/dev/ttyACM0")
     to_values_lambda = Lambda(func=convert_to_values) 
     downsample_lambda = Lambda(func=downsample)
-    buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=1) # one second of buffer
+    buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=100) # one second of buffer
     to_plotvalues_lambda = Lambda(func=to_plot_values)
     plotter = Plotter()
 
@@ -66,7 +67,7 @@ if __name__ == "__main__":
     oscilloscope.start()
 
     start_time = time.time()
-    plotter.block(should_stop=lambda: time.time() - start_time > 20)
+    plotter.block(should_stop=lambda: time.time() - start_time > 5)
 
     oscilloscope.stop()
 
