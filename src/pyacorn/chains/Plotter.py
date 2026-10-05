@@ -1,52 +1,51 @@
 from dataclasses import dataclass
 import queue
+import time
 from typing import Callable
 
 from matplotlib import pyplot as plt
 import numpy as np
-
+from numpy.typing import NDArray
 from pyacorn.chains.base import Tail
 
 
 @dataclass
 class PlotValues:
-    times: list[float]
-    values: list[float]
+    times: NDArray[np.float64]
+    values: NDArray[np.float64]
 
 class Plotter(Tail[PlotValues]):
     def __init__(self):
         super().__init__()
         self.queue = queue.Queue[PlotValues]()
+
         plt.ion()
         self.fig, self.ax = plt.subplots()
-        x = np.linspace(0, 1, num=100)
-        y = np.zeros(x.shape)
-        self.line, = self.ax.plot(x, y, 'b-')
+        self.line, = self.ax.plot([], [], 'b-')
+        self.ax.set_xlim(left=0, right=2)
+        self.ax.set_ylim(bottom=0, top=3.3)
+        plt.pause(0.1)
+
+        self.last_time = time.time()
 
     def execute(self, data: PlotValues):
-        print("sent")
+        current_time = time.time()
+        if current_time - self.last_time < 1/60:
+            return
         self.queue.put(item=data)
+        self.last_time = current_time
 
     def block(self, should_stop: Callable[[], bool]):
         while not should_stop():
-            last = None
             try:
-                while True:  
-                    last = self.queue.get()
-                    print("received")
-            except queue.Empty:
-                pass
+                plot_values = self.queue.get(timeout=1/60)
 
-            if last is not None:
-                self.ax.set_xlim(left=min(last.times), right=max(last.times))
-                self.ax.set_ylim(bottom=min(last.values), top=max(last.values))
-
-                print(min(last.values), max(last.values))
-                self.line.set_xdata(last.times)
-                self.line.set_ydata(last.values)
+                self.line.set_xdata(np.asarray(plot_values.times))
+                self.line.set_ydata(plot_values.values)
                 self.fig.canvas.draw()
                 self.fig.canvas.flush_events()
-            plt.pause(1/60)
+            except queue.Empty:
+                pass
 
     def show(self):
         plt.ioff()

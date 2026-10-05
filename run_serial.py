@@ -9,6 +9,7 @@ from numpy.typing import NDArray
 import numpy as np
 import serial
 
+from pyacorn.chains.Decoupler import Decoupler
 from pyacorn.chains.Plotter import Plotter, PlotValues
 from pyacorn.chains.Buffer import Buffer
 from pyacorn.chains.base import Head
@@ -27,6 +28,7 @@ class SerialConnection():
             data = connection.read(8192)   # blocks until timeout or newline
             self.output_queue.put(data)
         connection.close()
+
 class PacketBuffer():
     def __init__(self, input_queue: queue.Queue[bytes], on_packet: Callable[[Packet[ByteMetadata, bytes]], None]):
         self.buffer = SerialBuffer()
@@ -133,38 +135,34 @@ if __name__ == "__main__":
         return Packet(metadata=SampleMetadata(start_time=start_time, spacing_s=downsampled_spacing_s), data=downsampled_values)
 
     def to_plot_values(packets: list[Packet[SampleMetadata, NDArray[np.int8]]]) -> PlotValues:
-        times: list[float] = []
-        values: list[float] = []
-        
+        total_data = 0
         for packet in packets:
-            new_times = [i * packet.metadata.spacing_s + packet.metadata.start_time for i in range(len(packet.data))]
-            times += new_times
-            values += [item * 3.3 / (1 << 8) for item in packet.data]
+            total_data += len(packet.data)
 
+        times: NDArray[np.float64] = np.zeros(total_data, dtype=np.float64) 
+        values: NDArray[np.float64] = np.zeros(total_data, dtype=np.float64) 
+        run_index: int = 0
+        for packet in packets:
+            stop_index = run_index + len(packet.data)
+            times[run_index:stop_index] = np.arange(len(packet.data)) * packet.metadata.spacing_s + packet.metadata.start_time
+            values[run_index:stop_index] = packet.data * 3.3 / (1 << 8)
         return PlotValues(times=times, values=values)
 
     oscilloscope = FastPicoOscilloscope(port="/dev/ttyACM0")
     to_values_lambda = Lambda(func=convert_to_values) 
     downsample_lambda = Lambda(func=downsample)
-    buffer = Buffer[Packet[SampleMetadata, NDArray[np.int8]]](max_size=1) # one second of buffer
+    buffer = Buffer[Packet[SampleMetadata, NDArray[np.int8]]](max_size=5) # one second of buffer
     to_plotvalues_lambda = Lambda(func=to_plot_values)
-    plotter = Plotter()
+    # plotter = Plotter()
 
     oscilloscope.chain(to_values_lambda)
     to_values_lambda.chain(downsample_lambda)
     downsample_lambda.chain(buffer)
     buffer.chain(to_plotvalues_lambda)
-    to_plotvalues_lambda.chain(plotter)
+    # to_plotvalues_lambda.chain(plotter)
     
     oscilloscope.start()
 
-    start_time = time.time()
-    def should_stop():
-        return time.time() - start_time  > 2
-    print(f"Started: {time.time()}")
-    plotter.block(should_stop=should_stop)
-    print(f"Stopped: {time.time()}")
+    time.sleep(2)
 
     oscilloscope.stop()
-
-    plotter.show()    
