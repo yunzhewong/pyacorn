@@ -22,8 +22,8 @@ class Plotter(Tail[PlotValues]):
         plt.ion()
         self.fig, self.ax = plt.subplots()
         self.line, = self.ax.plot([], [], 'b-')
-        self.ax.set_xlim(left=0, right=2)
         self.ax.set_ylim(bottom=0, top=3.3)
+
         plt.pause(0.1)
 
         self.last_time = time.time()
@@ -40,7 +40,8 @@ class Plotter(Tail[PlotValues]):
             try:
                 plot_values = self.queue.get(timeout=1/60)
 
-                self.line.set_xdata(np.asarray(plot_values.times))
+                self.ax.set_xlim(left=np.min(plot_values.times), right=np.max(plot_values.times))
+                self.line.set_xdata(plot_values.times)
                 self.line.set_ydata(plot_values.values)
                 self.fig.canvas.draw()
                 self.fig.canvas.flush_events()
