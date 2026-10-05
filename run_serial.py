@@ -125,7 +125,7 @@ if __name__ == "__main__":
         return Packet(metadata=packet.metadata, data=values)
 
     def downsample(packet: Packet[FastPicoMetadata, NDArray[np.uint8]]) -> Packet[SampleMetadata, NDArray[np.uint8]]:
-        SAMPLES = 1000
+        SAMPLES = 2000
         downsampled_spacing_s = packet.metadata.spacing_s * SAMPLES
         downsampled_count = math.floor(len(packet.data) / SAMPLES)
         downsampled_values: NDArray[np.uint8] = np.empty(downsampled_count, dtype=np.uint8)
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     oscilloscope = FastPicoOscilloscope(port="/dev/ttyACM0")
     to_values_lambda = Lambda(func=convert_to_values) 
     downsample_lambda = Lambda(func=downsample)
-    buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=10) # one second of buffer
+    buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=1) # one second of buffer
     to_plotvalues_lambda = Lambda(func=to_plot_values)
     plotter = Plotter()
 
