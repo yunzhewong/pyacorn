@@ -1,14 +1,15 @@
 from dataclasses import dataclass
 import queue
+import threading
 import time
-from typing import Callable
+from typing import Callable, Optional
 
 from matplotlib import pyplot as plt
 import numpy as np
 from numpy.typing import NDArray
 from pyacorn.chains.base import Tail
 
-
+FRAME_RATE = 60
 @dataclass
 class PlotValues:
     times: NDArray[np.float64]
@@ -23,17 +24,10 @@ class Plotter(Tail[PlotValues]):
         self.fig, self.ax = plt.subplots()
         self.line, = self.ax.plot([], [], 'b-')
         self.ax.set_ylim(bottom=0, top=3.3)
-
         plt.pause(0.1)
 
-        self.last_time = time.time()
-
     def execute(self, data: PlotValues):
-        current_time = time.time()
-        if current_time - self.last_time < 1/60:
-            return
-        self.queue.put(item=data)
-        self.last_time = current_time
+        self.queue.put(data)
 
     def block(self, should_stop: Callable[[], bool]):
         while not should_stop():

@@ -3,11 +3,12 @@ from dataclasses import dataclass
 from pyacorn.chains.base import Head
 from pyacorn.serial_adapter import ByteMetadata, Packet, RolloverCountHistory, SerialPacketHandler
 
+SAMPLES_PER_SECOND = 500_000
 CAPTURE_BUFFER_SIZE = 2000 
 BYTES_PER_FLOAT = 1
-SPACING_S = 1 / 500_000
 SCALE_FACTOR = 3.3 / (1 << 8)
 
+SPACING_S = 1 / SAMPLES_PER_SECOND
 _DTYPES = {1: "<u1", 2: "<u2", 4: "<u4", 8: "<u8"}  # little-endian, unsigned
 DTYPE = _DTYPES[BYTES_PER_FLOAT]
 VALS_PER_PACKET = int(CAPTURE_BUFFER_SIZE / BYTES_PER_FLOAT)

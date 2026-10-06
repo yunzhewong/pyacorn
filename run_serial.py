@@ -13,6 +13,14 @@ from pyacorn.serial_adapter import Packet
 
 import pyacorn.oscilloscopes.fast_pico as fast_pico
 
+
+INTRA_PACKET_DOWNSAMPLE_DECIMATION = 2000
+BATCHER_SIZE = 10
+VIEWING_SIZE_S = 10
+
+BUFFER_SIZE = int(fast_pico.SAMPLES_PER_SECOND / INTRA_PACKET_DOWNSAMPLE_DECIMATION / BATCHER_SIZE * VIEWING_SIZE_S)
+
+
 @dataclass
 class SampleMetadata:
     start_time: float
@@ -24,12 +32,11 @@ if __name__ == "__main__":
         return Packet(metadata=packet.metadata, data=values)
 
     def intra_packet_downsample(packet: Packet[fast_pico.Metadata, NDArray[np.uint8]]) -> Packet[SampleMetadata, NDArray[np.uint8]]:
-        SAMPLES = 2000
-        downsampled_spacing_s = fast_pico.SPACING_S * SAMPLES
-        downsampled_count = math.floor(len(packet.data) / SAMPLES)
+        downsampled_spacing_s = fast_pico.SPACING_S * INTRA_PACKET_DOWNSAMPLE_DECIMATION
+        downsampled_count = math.floor(len(packet.data) / INTRA_PACKET_DOWNSAMPLE_DECIMATION)
         downsampled_values: NDArray[np.uint8] = np.empty(downsampled_count, dtype=np.uint8)
         for i in range(downsampled_count):
-            downsampled_values[i] = packet.data[i * SAMPLES]
+            downsampled_values[i] = packet.data[i * INTRA_PACKET_DOWNSAMPLE_DECIMATION]
         start_time = packet.metadata.start_sample * fast_pico.SPACING_S
         return Packet(metadata=SampleMetadata(start_time=start_time, spacing_s=downsampled_spacing_s), data=downsampled_values)
 
@@ -57,10 +64,10 @@ if __name__ == "__main__":
     oscilloscope = fast_pico.Oscilloscope(port="/dev/ttyACM0")
     to_values_lambda = Lambda(func=convert_to_values) 
     intra_downsample_lambda = Lambda(func=intra_packet_downsample)
-    batcher = Batcher(batch_size=10)
+    batcher = Batcher(batch_size=BATCHER_SIZE)
     inter_downsample_lambda = Lambda(func=inter_packet_downsample)
     flatten_lambda = Lambda(func=flatten)
-    buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=100) # one second of buffer
+    buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=BUFFER_SIZE)
     to_plotvalues_lambda = Lambda(func=to_plot_values)
     plotter = Plotter()
 
