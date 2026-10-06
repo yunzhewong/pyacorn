@@ -43,7 +43,7 @@ class Packet[M, T]():
     metadata: M
     data: T
 
-class SerialBuffer(Head[list[Packet[ByteMetadata, bytes]]]):
+class PacketBuffer(Head[list[Packet[ByteMetadata, bytes]]]):
     def __init__(self, capture_buffer_size: int):
         super().__init__()
         self.buffer = bytes()
@@ -88,9 +88,9 @@ class SerialConnection():
             self.output_queue.put(data)
         connection.close()
 
-class PacketBuffer():
+class PacketHandler():
     def __init__(self, capture_buffer_size: int, input_queue: queue.Queue[bytes], on_packet: Callable[[Packet[ByteMetadata, bytes]], None]):
-        self.buffer = SerialBuffer(capture_buffer_size=capture_buffer_size)
+        self.buffer = PacketBuffer(capture_buffer_size=capture_buffer_size)
         self.input_queue = input_queue
         self.on_packet = on_packet
 
@@ -104,11 +104,11 @@ class PacketBuffer():
             except queue.Empty:
                 pass
 
-class SerialPacketReader():
+class SerialPacketHandler():
     def __init__(self, port: str, capture_buffer_size: int, on_packet: Callable[[Packet[ByteMetadata, bytes]], None]):
         shared_queue = queue.Queue[bytes]()
         self.serial_connection = SerialConnection(port=port, output_queue=shared_queue)
-        self.packet_buffer = PacketBuffer(capture_buffer_size=capture_buffer_size, input_queue=shared_queue, on_packet=on_packet)
+        self.packet_handler = PacketHandler(capture_buffer_size=capture_buffer_size, input_queue=shared_queue, on_packet=on_packet)
         self._threads: list[threading.Thread] = []
         self._abort_event = threading.Event()
 
@@ -116,7 +116,7 @@ class SerialPacketReader():
         self._abort_event.clear()
         self._threads = [
             threading.Thread(target=self.serial_connection.handle, args=(self._abort_event, )),
-            threading.Thread(target=self.packet_buffer.handle, args=(self._abort_event, ))
+            threading.Thread(target=self.packet_handler.handle, args=(self._abort_event, ))
         ]
         for thread in self._threads:
             thread.start()

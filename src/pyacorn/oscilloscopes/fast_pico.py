@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from pyacorn.chains.base import Head
-from pyacorn.serial_adapter import ByteMetadata, Packet, RolloverCountHistory, SerialPacketReader
+from pyacorn.serial_adapter import ByteMetadata, Packet, RolloverCountHistory, SerialPacketHandler
 
 CAPTURE_BUFFER_SIZE = 2000 
 BYTES_PER_FLOAT = 1
@@ -18,7 +18,7 @@ class Metadata:
 class Oscilloscope(Head[Packet[Metadata, bytes]]):
     def __init__(self, port: str):
         super().__init__()
-        self.reader = SerialPacketReader(port=port, capture_buffer_size=CAPTURE_BUFFER_SIZE, on_packet=self._handle_packet)
+        self.reader = SerialPacketHandler(port=port, capture_buffer_size=CAPTURE_BUFFER_SIZE, on_packet=self._handle_packet)
         self.rollover_count_history = RolloverCountHistory()
 
     def start(self):
