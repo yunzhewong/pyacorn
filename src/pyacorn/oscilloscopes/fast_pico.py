@@ -8,12 +8,13 @@ BYTES_PER_FLOAT = 1
 SPACING_S = 1 / 500_000
 SCALE_FACTOR = 3.3 / (1 << 8)
 
+_DTYPES = {1: "<u1", 2: "<u2", 4: "<u4", 8: "<u8"}  # little-endian, unsigned
+DTYPE = _DTYPES[BYTES_PER_FLOAT]
+VALS_PER_PACKET = int(CAPTURE_BUFFER_SIZE / BYTES_PER_FLOAT)
+
 @dataclass
 class Metadata:
     start_sample: int
-    bytes_per_float: int = BYTES_PER_FLOAT
-    spacing_s: float = SPACING_S
-    scale_factor: float = SCALE_FACTOR
 
 class Oscilloscope(Head[Packet[Metadata, bytes]]):
     def __init__(self, port: str):
