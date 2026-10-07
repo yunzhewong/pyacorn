@@ -1,4 +1,3 @@
-import copy
 from dataclasses import dataclass
 import threading
 import time
@@ -36,9 +35,9 @@ class Plotter(Tail[PlotValues]):
         while not should_stop():
             start_time = time.monotonic()
 
-            if self._plot_values is not None:
-                with self._lock:
-                    plot_values = copy.deepcopy(self._plot_values)
+            with self._lock:   
+                plot_values = self._plot_values
+            if plot_values is not None:
                 self.ax.set_xlim(left=np.min(plot_values.times), right=np.max(plot_values.times))
                 self.line.set_xdata(plot_values.times)
                 self.line.set_ydata(plot_values.values)
