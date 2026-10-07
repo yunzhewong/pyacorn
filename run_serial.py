@@ -18,7 +18,15 @@ DOWNSAMPLE_INTERVAL = 1000
 BATCHER_SIZE = 10
 VIEWING_SIZE_S = 10
 
-BUFFER_SIZE = int(fast_pico.SAMPLES_PER_SECOND / DOWNSAMPLE_INTERVAL * VIEWING_SIZE_S)
+BUFFER_SIZE_S = 2 * 12.5
+READINGS_IN_FAST_PICO_PACKET = fast_pico.CAPTURE_BUFFER_SIZE / fast_pico.BYTES_PER_FLOAT
+READINGS_IN_DATA_PACKET = math.floor(BATCHER_SIZE * READINGS_IN_FAST_PICO_PACKET / DOWNSAMPLE_INTERVAL)
+READINGS_IN_BUFFER = BUFFER_SIZE_S * READINGS_IN_DATA_PACKET
+PLOT_DURATION = READINGS_IN_BUFFER * fast_pico.SPACING_S * DOWNSAMPLE_INTERVAL
+print(PLOT_DURATION)
+# FAST_PICO_PACKETS_PER_SECOND = fast_pico.SAMPLES_PER_SECOND / fast_pico.CAPTURE_BUFFER_SIZE
+# DATA_PACKETS_PER_SECOND = FAST_PICO_PACKETS_PER_SECOND / BATCHER_SIZE
+# BUFFER_SIZE = int(fast_pico.SAMPLES_PER_SECOND / DOWNSAMPLE_INTERVAL * VIEWING_SIZE_S)
 
 
 @dataclass
@@ -53,7 +61,6 @@ if __name__ == "__main__":
         total_data = 0
         for packet in packets:
             total_data += len(packet.data)
-
         times: NDArray[np.float64] = np.zeros(total_data, dtype=np.float64) 
         values: NDArray[np.float64] = np.zeros(total_data, dtype=np.float64) 
         run_index: int = 0
@@ -67,7 +74,7 @@ if __name__ == "__main__":
     oscilloscope = fast_pico.Oscilloscope(port="/dev/ttyACM0")
     batcher = Batcher(batch_size=BATCHER_SIZE)
     to_data_lambda = Lambda(func=to_data_packet) 
-    buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=BUFFER_SIZE)
+    buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=BUFFER_SIZE_S)
     to_plotvalues_lambda = Lambda(func=to_plot_values)
     plotter = Plotter()
 
