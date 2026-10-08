@@ -14,20 +14,15 @@ from pyacorn.serial_adapter import Packet
 import pyacorn.oscilloscopes.fast_pico as fast_pico
 
 
-DOWNSAMPLE_INTERVAL = 1000
-BATCHER_SIZE = 10
-VIEWING_SIZE_S = 10
+DOWNSAMPLE_MULTIPLIER: int = 1000
+PACKETS_PER_UPDATE: int = 10
+PLOT_DURATION: float = 1
 
-BUFFER_SIZE_S = int(2 * 12.5)
 READINGS_IN_FAST_PICO_PACKET = fast_pico.CAPTURE_BUFFER_SIZE / fast_pico.BYTES_PER_FLOAT
-READINGS_IN_DATA_PACKET = math.floor(BATCHER_SIZE * READINGS_IN_FAST_PICO_PACKET / DOWNSAMPLE_INTERVAL)
-READINGS_IN_BUFFER = BUFFER_SIZE_S * READINGS_IN_DATA_PACKET
-PLOT_DURATION = READINGS_IN_BUFFER * fast_pico.SPACING_S * DOWNSAMPLE_INTERVAL
-print(PLOT_DURATION)
-# FAST_PICO_PACKETS_PER_SECOND = fast_pico.SAMPLES_PER_SECOND / fast_pico.CAPTURE_BUFFER_SIZE
-# DATA_PACKETS_PER_SECOND = FAST_PICO_PACKETS_PER_SECOND / BATCHER_SIZE
-# BUFFER_SIZE = int(fast_pico.SAMPLES_PER_SECOND / DOWNSAMPLE_INTERVAL * VIEWING_SIZE_S)
-
+READINGS_IN_DATA_PACKET = math.floor(PACKETS_PER_UPDATE * READINGS_IN_FAST_PICO_PACKET / DOWNSAMPLE_MULTIPLIER)
+READINGS_SPACING = fast_pico.SPACING_S * DOWNSAMPLE_MULTIPLIER
+READINGS_IN_BUFFER = PLOT_DURATION / READINGS_SPACING
+BUFFER_SIZE = int(READINGS_IN_BUFFER / READINGS_IN_DATA_PACKET)
 
 @dataclass
 class SampleMetadata:
@@ -41,8 +36,8 @@ if __name__ == "__main__":
             total_values += len(packet.data)
 
         start_time = packets[0].metadata.start_sample * fast_pico.SPACING_S
-        spacing_s = fast_pico.SPACING_S * DOWNSAMPLE_INTERVAL
-        downsampled_count = math.floor(total_values / DOWNSAMPLE_INTERVAL)
+        spacing_s = fast_pico.SPACING_S * DOWNSAMPLE_MULTIPLIER
+        downsampled_count = math.floor(total_values / DOWNSAMPLE_MULTIPLIER)
         values = np.zeros(downsampled_count, dtype=np.uint8)
 
         value_index = 0
@@ -52,7 +47,7 @@ if __name__ == "__main__":
             while running_index < len(packet_values):
                 values[value_index] = packet_values[running_index]
                 value_index += 1
-                running_index += DOWNSAMPLE_INTERVAL            
+                running_index += DOWNSAMPLE_MULTIPLIER            
             running_index -= len(packet_values)
 
         return Packet(metadata=SampleMetadata(start_time=start_time, spacing_s=spacing_s), data=values)
@@ -72,9 +67,9 @@ if __name__ == "__main__":
         return plotter.Values(times=times, values=values)
 
     oscilloscope = fast_pico.Oscilloscope(port="/dev/ttyACM0")
-    batcher = Batcher(batch_size=BATCHER_SIZE)
+    batcher = Batcher(batch_size=PACKETS_PER_UPDATE)
     to_data_lambda = Lambda(func=to_data_packet) 
-    buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=BUFFER_SIZE_S)
+    buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=BUFFER_SIZE)
     to_plotvalues_lambda = Lambda(func=to_plot_values)
     plotter_tail = plotter.Plotter(min=fast_pico.MIN_VOLTAGE, max=fast_pico.MAX_VOLTAGE)
 
