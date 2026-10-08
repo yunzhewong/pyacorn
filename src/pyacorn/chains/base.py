@@ -22,6 +22,11 @@ class Body[I, O](abc.ABC):
         self.callback_map.add(item.execute)
         return item
 
+    @abc.abstractmethod
+    def execute(self, data: I):
+        ...
+
+class OperationBody[I, O](Body[I, O]):
     def execute(self, data: I):
         output = self.operate(data)
         self.callback_map.execute(output)

@@ -1,7 +1,10 @@
-from pyacorn.chains.base import Body
+from typing import final
+
+from pyacorn.chains.base import OperationBody
 
 
-class Buffer[T](Body[T, list[T]]):
+@final
+class Buffer[T](OperationBody[T, list[T]]):
     def __init__(self, max_size: int):
         super().__init__()
         self.buffered_data: list[T] = []

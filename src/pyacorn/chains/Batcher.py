@@ -1,6 +1,8 @@
+from typing import final
+
 from pyacorn.chains.base import Body
 
-
+@final
 class Batcher[T](Body[T, list[T]]):
     def __init__(self, batch_size: int):
         super().__init__()

@@ -1,9 +1,9 @@
 from typing import Any, Callable
 
-from pyacorn.chains.base import Body
+from pyacorn.chains.base import OperationBody
 
 
-class Lambda[I, O](Body[I, O]):
+class Lambda[I, O](OperationBody[I, O]):
     def __init__(self, func: Callable[[I], O]):
         super().__init__()
         self.func = func
