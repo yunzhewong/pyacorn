@@ -1,6 +1,6 @@
 from typing import final
 
-from pyacorn.chains.base import OperationBody
+from .base import OperationBody
 
 
 @final

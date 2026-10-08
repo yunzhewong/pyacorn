@@ -5,9 +5,9 @@ from numpy.typing import NDArray
 
 import numpy as np
 
-from pyacorn.chains.Batcher import Batcher
+from pyacorn.chains.batcher import Batcher
 from pyacorn.outputs import plotter
-from pyacorn.chains.Buffer import Buffer
+from pyacorn.chains.buffer import Buffer
 from pyacorn.chains.lambdas import Lambda
 from pyacorn.serial_adapter import Packet
 

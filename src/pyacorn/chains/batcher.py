@@ -1,6 +1,6 @@
 from typing import final
 
-from pyacorn.chains.base import Body
+from .base import Body
 
 @final
 class Batcher[T](Body[T, list[T]]):
@@ -15,6 +15,3 @@ class Batcher[T](Body[T, list[T]]):
             return
         self.callback_map.execute(self.buffer[:self.batch_size])
         self.buffer = self.buffer[self.batch_size:]
-
-    def operate(self, data: T) -> list[T]:
-        raise NotImplementedError()
