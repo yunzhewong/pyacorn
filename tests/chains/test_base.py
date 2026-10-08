@@ -1,5 +1,5 @@
 from pyacorn.chains.base import Body, Head, Tail
-from pyacorn.protocols import chainable
+from pyacorn.chains import protocol as chainable
 
 
 def test_head_protocols():

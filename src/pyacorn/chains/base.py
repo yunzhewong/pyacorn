@@ -1,4 +1,4 @@
-from pyacorn.protocols import chainable
+from . import protocol as chainable
 import abc
 
 from pyacorn.utils import CallbackMap
