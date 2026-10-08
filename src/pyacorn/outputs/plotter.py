@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import signal
 import threading
 import time
 from typing import Callable
@@ -7,13 +8,14 @@ from matplotlib import pyplot as plt
 import numpy as np
 from numpy.typing import NDArray
 from pyacorn.chains.base import Tail
+from pyacorn.oscilloscopes.base import Oscilloscope
 
 FRAME_LIMIT = 60
 
 @dataclass
 class Values:
-    times: NDArray[np.float64]
-    values: NDArray[np.float64]
+    times: NDArray[np.float32]
+    values: NDArray[np.float32]
 
 @dataclass
 class Attributes:
@@ -59,7 +61,7 @@ class Plotter(Tail[Values]):
 
             plot_values = self._attributes.get_values()
             if plot_values is not None:
-                self.ax.set_xlim(left=np.min(plot_values.times), right=np.max(plot_values.times))
+                self.ax.set_xlim(left=float(np.min(plot_values.times)), right=float(np.max(plot_values.times)))
                 self.line.set_xdata(plot_values.times)
                 self.line.set_ydata(plot_values.values)
                 self.fig.canvas.draw()
@@ -68,6 +70,10 @@ class Plotter(Tail[Values]):
             time.sleep(self._attributes.calc_sleep_duration(elapsed_time=time.monotonic() - start_time))
 
     def show(self):
+        print("Acquisition Complete - Close plot when done")
         plt.ioff()
         plt.show()
 
+
+def register_stop_on_sigint(oscilloscope: Oscilloscope):
+    signal.signal(signal.SIGINT, lambda _signum, _frame: oscilloscope.stop())

@@ -1,89 +1,43 @@
-from dataclasses import dataclass
-import math
-import time
 from numpy.typing import NDArray
 
 import numpy as np
 
-from pyacorn.chains.batcher import Batcher
+from pyacorn.oscilloscopes.base import AcquisitionMode, BasicDataPackerSettings, SampleMetadata
 from pyacorn.outputs import plotter
-from pyacorn.chains.buffer import Buffer
 from pyacorn.chains.lambdas import Lambda
 from pyacorn.serial_adapter import Packet
 
 import pyacorn.oscilloscopes.fast_pico as fast_pico
 
 
-DOWNSAMPLE_MULTIPLIER: int = 1000
-PACKETS_PER_UPDATE: int = 10
-PLOT_DURATION: float = 1
-
-READINGS_IN_FAST_PICO_PACKET = fast_pico.CAPTURE_BUFFER_SIZE / fast_pico.BYTES_PER_FLOAT
-READINGS_IN_DATA_PACKET = math.floor(PACKETS_PER_UPDATE * READINGS_IN_FAST_PICO_PACKET / DOWNSAMPLE_MULTIPLIER)
-READINGS_SPACING = fast_pico.SPACING_S * DOWNSAMPLE_MULTIPLIER
-READINGS_IN_BUFFER = PLOT_DURATION / READINGS_SPACING
-BUFFER_SIZE = math.ceil(READINGS_IN_BUFFER / READINGS_IN_DATA_PACKET)
-
-@dataclass
-class SampleMetadata:
-    start_time: float
-    spacing_s: float
+settings = BasicDataPackerSettings(downsample_multiplier=1000, packets_per_update=10, plot_duration=1)
 
 if __name__ == "__main__":
-    def to_data_packet(packets: list[Packet[fast_pico.Metadata, bytes]]) -> Packet[SampleMetadata, NDArray[np.uint8]]:
-        total_values = 0
-        for packet in packets:
-            total_values += len(packet.data)
-
-        start_time = packets[0].metadata.start_sample * fast_pico.SPACING_S
-        spacing_s = fast_pico.SPACING_S * DOWNSAMPLE_MULTIPLIER
-        downsampled_count = math.floor(total_values / DOWNSAMPLE_MULTIPLIER)
-        values = np.zeros(downsampled_count, dtype=np.uint8)
-
-        value_index = 0
-        running_index = 0
-        for packet in packets:
-            packet_values = np.frombuffer(packet.data, dtype=fast_pico.DTYPE, count=fast_pico.VALS_PER_PACKET)
-            while running_index < len(packet_values):
-                values[value_index] = packet_values[running_index]
-                value_index += 1
-                running_index += DOWNSAMPLE_MULTIPLIER            
-            running_index -= len(packet_values)
-
-        return Packet(metadata=SampleMetadata(start_time=start_time, spacing_s=spacing_s), data=values)
-
-    def to_plot_values(packets: list[Packet[SampleMetadata, NDArray[np.uint8]]]) -> plotter.Values:
+    def to_plot_values(packets: list[Packet[SampleMetadata, NDArray[np.float32]]]) -> plotter.Values:
         total_data = 0
         for packet in packets:
             total_data += len(packet.data)
-        times: NDArray[np.float64] = np.zeros(total_data, dtype=np.float64) 
-        values: NDArray[np.float64] = np.zeros(total_data, dtype=np.float64) 
+        times: NDArray[np.float32] = np.zeros(total_data, dtype=np.float32) 
+        values: NDArray[np.float32] = np.zeros(total_data, dtype=np.float32) 
         run_index: int = 0
         for packet in packets:
             stop_index = run_index + len(packet.data)
             times[run_index:stop_index] = np.arange(len(packet.data)) * packet.metadata.spacing_s + packet.metadata.start_time
-            values[run_index:stop_index] = packet.data * fast_pico.SCALE_FACTOR
+            values[run_index:stop_index] = packet.data
             run_index = stop_index
         return plotter.Values(times=times, values=values)
 
     oscilloscope = fast_pico.Oscilloscope(port="/dev/ttyACM0")
-    batcher = Batcher(batch_size=PACKETS_PER_UPDATE)
-    to_data_lambda = Lambda(func=to_data_packet) 
-    buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=BUFFER_SIZE)
+    data_packer = fast_pico.BasicDataPacker(settings=settings)
     to_plotvalues_lambda = Lambda(func=to_plot_values)
     plotter_tail = plotter.Plotter(min=fast_pico.MIN_VOLTAGE, max=fast_pico.MAX_VOLTAGE)
 
-    oscilloscope.chain(batcher)
-    batcher.chain(to_data_lambda)
-    to_data_lambda.chain(buffer)
-    buffer.chain(to_plotvalues_lambda)
+    oscilloscope.chain(data_packer)
+    data_packer.chain(to_plotvalues_lambda)
     to_plotvalues_lambda.chain(plotter_tail)
     
-    oscilloscope.start()
+    oscilloscope.acquire(acquisition_mode=AcquisitionMode.continuous())
+    plotter.register_stop_on_sigint(oscilloscope=oscilloscope)
 
-    start_time = time.time()
-    plotter_tail.block(should_stop=lambda: time.time() - start_time > 20)
-
-    oscilloscope.stop()
-
+    plotter_tail.block(should_stop=oscilloscope.is_complete)
     plotter_tail.show()
