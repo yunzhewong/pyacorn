@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 import numpy as np
 
 from pyacorn.chains.Batcher import Batcher
-from pyacorn.chains.Plotter import Plotter, PlotValues
+from pyacorn.outputs import plotter
 from pyacorn.chains.Buffer import Buffer
 from pyacorn.chains.lambdas import Lambda
 from pyacorn.serial_adapter import Packet
@@ -18,7 +18,7 @@ DOWNSAMPLE_INTERVAL = 1000
 BATCHER_SIZE = 10
 VIEWING_SIZE_S = 10
 
-BUFFER_SIZE_S = 2 * 12.5
+BUFFER_SIZE_S = int(2 * 12.5)
 READINGS_IN_FAST_PICO_PACKET = fast_pico.CAPTURE_BUFFER_SIZE / fast_pico.BYTES_PER_FLOAT
 READINGS_IN_DATA_PACKET = math.floor(BATCHER_SIZE * READINGS_IN_FAST_PICO_PACKET / DOWNSAMPLE_INTERVAL)
 READINGS_IN_BUFFER = BUFFER_SIZE_S * READINGS_IN_DATA_PACKET
@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
         return Packet(metadata=SampleMetadata(start_time=start_time, spacing_s=spacing_s), data=values)
 
-    def to_plot_values(packets: list[Packet[SampleMetadata, NDArray[np.uint8]]]) -> PlotValues:
+    def to_plot_values(packets: list[Packet[SampleMetadata, NDArray[np.uint8]]]) -> plotter.Values:
         total_data = 0
         for packet in packets:
             total_data += len(packet.data)
@@ -69,26 +69,26 @@ if __name__ == "__main__":
             times[run_index:stop_index] = np.arange(len(packet.data)) * packet.metadata.spacing_s + packet.metadata.start_time
             values[run_index:stop_index] = packet.data * fast_pico.SCALE_FACTOR
             run_index = stop_index
-        return PlotValues(times=times, values=values)
+        return plotter.Values(times=times, values=values)
 
     oscilloscope = fast_pico.Oscilloscope(port="/dev/ttyACM0")
     batcher = Batcher(batch_size=BATCHER_SIZE)
     to_data_lambda = Lambda(func=to_data_packet) 
     buffer = Buffer[Packet[SampleMetadata, NDArray[np.uint8]]](max_size=BUFFER_SIZE_S)
     to_plotvalues_lambda = Lambda(func=to_plot_values)
-    plotter = Plotter()
+    plotter_tail = plotter.Plotter(min=fast_pico.MIN_VOLTAGE, max=fast_pico.MAX_VOLTAGE)
 
     oscilloscope.chain(batcher)
     batcher.chain(to_data_lambda)
     to_data_lambda.chain(buffer)
     buffer.chain(to_plotvalues_lambda)
-    to_plotvalues_lambda.chain(plotter)
+    to_plotvalues_lambda.chain(plotter_tail)
     
     oscilloscope.start()
 
     start_time = time.time()
-    plotter.block(should_stop=lambda: time.time() - start_time > 20)
+    plotter_tail.block(should_stop=lambda: time.time() - start_time > 20)
 
     oscilloscope.stop()
 
-    plotter.show()
+    plotter_tail.show()

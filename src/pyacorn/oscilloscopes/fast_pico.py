@@ -7,6 +7,8 @@ SAMPLES_PER_SECOND = 500_000
 CAPTURE_BUFFER_SIZE = 2000 
 BYTES_PER_FLOAT = 1
 SCALE_FACTOR = 3.3 / (1 << 8)
+MIN_VOLTAGE = 0.0
+MAX_VOLTAGE = 3.3
 
 SPACING_S = 1 / SAMPLES_PER_SECOND
 _DTYPES = {1: "<u1", 2: "<u2", 4: "<u4", 8: "<u8"}  # little-endian, unsigned
