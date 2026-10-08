@@ -1,7 +1,6 @@
 from . import protocol as chainable
+from .callback_map import CallbackMap
 import abc
-
-from pyacorn.utils import CallbackMap
 
 class Head[O](abc.ABC):
     def __init__(self):
