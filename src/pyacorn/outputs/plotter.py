@@ -75,5 +75,4 @@ class Plotter(Tail[Values]):
         plt.show()
 
 
-def register_stop_on_sigint(oscilloscope: Oscilloscope):
-    signal.signal(signal.SIGINT, lambda _signum, _frame: oscilloscope.stop())
+
