@@ -7,6 +7,8 @@ from pyacorn.serial_adapter import ByteMetadata, Packet, RolloverCountHistory, S
 
 CAPTURE_BUFFER_SIZE = 2000 
 DTYPES = {1: "<u1", 2: "<u2", 4: "<u4", 8: "<u8"}  # little-endian, unsigned
+MIN_VOLTAGE = 0
+MAX_VOLTAGE = 3.3
 
 @dataclass
 class Metadata:
@@ -18,10 +20,30 @@ class SampleMetadata:
     spacing_s: float
 
 @dataclass
+class Parameters():
+    samples_per_second: int
+    bytes_per_float: int
+    
+    @property
+    def dtype(self) -> str:
+        return DTYPES[self.bytes_per_float] 
+
+    @property
+    def scale_factor(self):
+        return MAX_VOLTAGE / (1 << (8 * self.bytes_per_float))
+
+    @property
+    def spacing_s(self):
+        return 1 / self.samples_per_second
+
+    @property
+    def values_per_packet(self):
+        return int(CAPTURE_BUFFER_SIZE / self.bytes_per_float)
+
+@dataclass
 class BasicDataPackerSettings():
     downsample_multiplier: int
     packets_per_update: int
-    plot_duration: float
 
 CONTINUOUS_SENTINEL = -1
 class AcquisitionMode:

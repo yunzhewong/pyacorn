@@ -11,7 +11,7 @@ from pyacorn.serial_adapter import Packet
 
 import pyacorn.oscilloscopes.fast_pico as fast_pico
 
-settings = BasicDataPackerSettings(downsample_multiplier=100, packets_per_update=10, plot_duration=1)
+settings = BasicDataPackerSettings(downsample_multiplier=100, packets_per_update=10)
 
 if __name__ == "__main__":
     def to_values(packets: list[Packet[SampleMetadata, npt.NDArray[np.float32]]]) -> terminal_logger.Values:

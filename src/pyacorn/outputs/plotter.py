@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import signal
+import math
 import threading
 import time
 from typing import Callable
@@ -8,9 +8,13 @@ from matplotlib import pyplot as plt
 import numpy as np
 from numpy.typing import NDArray
 from pyacorn.chains.base import Tail
-from pyacorn.oscilloscopes.base import Oscilloscope
+from pyacorn.oscilloscopes.base import BasicDataPackerSettings, Parameters
 
-FRAME_LIMIT = 60
+def calculate_buffer_size(parameters: Parameters, settings: BasicDataPackerSettings, plot_duration: float):
+    readings_in_data_packet = math.floor(settings.packets_per_update * parameters.values_per_packet / settings.downsample_multiplier)
+    readings_spacing = parameters.spacing_s * settings.downsample_multiplier
+    readings_in_buffer = plot_duration / readings_spacing
+    return math.ceil(readings_in_buffer / readings_in_data_packet)
 
 @dataclass
 class Values:
@@ -40,6 +44,8 @@ class Attributes:
         if duration > 0:
             return duration
         return 0
+
+FRAME_LIMIT = 60
 
 class Plotter(Tail[Values]):
     def __init__(self, min: float, max: float, frames_per_second: int = FRAME_LIMIT):

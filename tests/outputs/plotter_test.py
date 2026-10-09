@@ -39,7 +39,7 @@ def test_create():
 def test_change_and_get():
     created = Attributes.create(frames_per_second=100)
 
-    new_values = Values(times=np.zeros(100), values=np.zeros(100))
+    new_values = Values(times=np.zeros(100, dtype=np.float32), values=np.zeros(100, dtype=np.float32))
     created.change_values(new_values=new_values)
     assert created._values == new_values
     assert created.get_values() == new_values 

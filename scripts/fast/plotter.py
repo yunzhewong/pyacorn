@@ -1,16 +1,20 @@
 import numpy.typing as npt
 import numpy as np
 
-from pyacorn.oscilloscopes.base import AcquisitionMode, BasicDataPackerSettings, SampleMetadata
+from pyacorn.chains.buffer import Buffer
+from pyacorn.oscilloscopes.base import AcquisitionMode, BasicDataPackerSettings, SampleMetadata, MIN_VOLTAGE, MAX_VOLTAGE
 from pyacorn.outputs import plotter
+from pyacorn.outputs.shared import register_stop_on_sigint
 from pyacorn.chains import Lambda
 from pyacorn.serial_adapter import Packet
 
 import pyacorn.oscilloscopes.fast_pico as fast_pico
 
-settings = BasicDataPackerSettings(downsample_multiplier=1000, packets_per_update=10, plot_duration=1)
+settings = BasicDataPackerSettings(downsample_multiplier=1000, packets_per_update=10)
 
 if __name__ == "__main__":
+    buffer_size = plotter.calculate_buffer_size(parameters=fast_pico.PARAMETERS, settings=settings, plot_duration=1)
+    
     def to_plot_values(packets: list[Packet[SampleMetadata, npt.NDArray[np.float32]]]) -> plotter.Values:
         total_data = 0
         for packet in packets:
@@ -27,14 +31,15 @@ if __name__ == "__main__":
 
     oscilloscope = fast_pico.Oscilloscope(port="/dev/ttyACM0")
     data_packer = fast_pico.BasicDataPacker(settings=settings)
+    buffer = Buffer[Packet[SampleMetadata, npt.NDArray[np.float32]]](max_size=buffer_size)
     to_plotvalues_lambda = Lambda(func=to_plot_values)
-    plotter_tail = plotter.Plotter(min=fast_pico.MIN_VOLTAGE, max=fast_pico.MAX_VOLTAGE)
+    plotter_tail = plotter.Plotter(min=MIN_VOLTAGE, max=MAX_VOLTAGE)
 
     oscilloscope.chain(data_packer)
     data_packer.chain(to_plotvalues_lambda)
     to_plotvalues_lambda.chain(plotter_tail)
 
-    plotter.register_stop_on_sigint(oscilloscope=oscilloscope)
+    register_stop_on_sigint(oscilloscope=oscilloscope)
     
     oscilloscope.acquire(acquisition_mode=AcquisitionMode.continuous())
 
