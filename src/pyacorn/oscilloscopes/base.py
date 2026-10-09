@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import math
 import threading
 from typing import Optional
 
@@ -37,13 +38,21 @@ class Parameters():
         return 1 / self.samples_per_second
 
     @property
-    def values_per_packet(self):
+    def samples_per_packet(self):
         return int(CAPTURE_BUFFER_SIZE / self.bytes_per_float)
 
+    @property
+    def packets_per_second(self):
+        return self.samples_per_second / self.samples_per_packet
+
+FRAME_RATE = 60
 @dataclass
-class BasicDataPackerSettings():
+class BasicChainSettings():
     downsample_multiplier: int
-    packets_per_update: int
+    frame_rate: float = FRAME_RATE
+
+    def calc_packets_per_update(self, parameters: Parameters):
+        return math.floor(parameters.packets_per_second / self.frame_rate)
 
 CONTINUOUS_SENTINEL = -1
 class AcquisitionMode:
