@@ -9,7 +9,7 @@ MAX_VOLTAGE = 3.3
 
 @dataclass
 class Metadata:
-    start_sample: int
+    index: int
 
 
 @dataclass
@@ -77,3 +77,14 @@ class AcquisitionMode:
     @staticmethod
     def continuous():
         return AcquisitionMode(frames=CONTINUOUS_SENTINEL)
+
+
+@dataclass
+class ByteMetadata:
+    rolling_packet_counter: int
+
+
+@dataclass
+class Packet[M, T]:
+    metadata: M
+    data: T

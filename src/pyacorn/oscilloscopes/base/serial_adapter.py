@@ -1,11 +1,11 @@
 import queue
 import threading
 from collections.abc import Callable
-from dataclasses import dataclass
 
 import serial
 
 from pyacorn.chains.base import Head
+from pyacorn.oscilloscopes.base.structs import ByteMetadata, Packet
 
 DELIMITER = 0xFF
 
@@ -20,31 +20,6 @@ def crc8(data: bytes, init: int = 0xFF, poly: int = 0x07) -> int:
             else:
                 crc = (crc << 1) & 0xFF
     return crc
-
-
-# _TABLE = []
-# for i in range(256):
-#     c = i
-#     for _ in range(8):
-#         c = ((c << 1) ^ 0x07) & 0xFF if c & 0x80 else (c << 1) & 0xFF
-#     _TABLE.append(c)
-
-# def crc8_fast(data: bytes, init: int = 0xFF) -> int:
-#     crc = init
-#     for byte in data:
-#         crc = _TABLE[crc ^ byte]
-#     return crc
-
-
-@dataclass
-class ByteMetadata:
-    rolling_packet_counter: int
-
-
-@dataclass
-class Packet[M, T]:
-    metadata: M
-    data: T
 
 
 class PacketBuffer(Head[list[Packet[ByteMetadata, bytes]]]):
