@@ -10,8 +10,8 @@ from pyacorn.serial_adapter import Packet
 
 import pyacorn.oscilloscopes.fast_pico as fast_pico
 
-settings = BasicChainSettings(downsample_multiplier=1000)
-PLOT_DURATION = 1
+settings = BasicChainSettings(downsample_multiplier=1)
+PLOT_DURATION = 0.005
 
 if __name__ == "__main__":
     def to_plot_values(packets: list[Packet[SampleMetadata, npt.NDArray[np.float32]]]) -> plotter.Values:
