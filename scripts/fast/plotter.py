@@ -6,7 +6,8 @@ from pyacorn.oscilloscopes.base import AcquisitionMode, BasicChainSettings, Samp
 from pyacorn.outputs import plotter
 from pyacorn.outputs.shared import register_stop_on_sigint
 from pyacorn.chains import Lambda
-from pyacorn.serial_adapter import Packet
+from pyacorn.oscilloscopes.serial_adapter import Packet
+
 
 import pyacorn.oscilloscopes.fast_pico as fast_pico
 

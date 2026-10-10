@@ -4,7 +4,7 @@ import threading
 from typing import Optional
 
 from pyacorn.chains.base import Head
-from pyacorn.serial_adapter import ByteMetadata, Packet, RolloverCountHistory, SerialPacketHandler
+from .serial_adapter import ByteMetadata, Packet, RolloverCountHistory, SerialPacketHandler
 
 CAPTURE_BUFFER_SIZE = 2000 
 DTYPES = {1: "<u1", 2: "<u2", 4: "<u4", 8: "<u8"}  # little-endian, unsigned

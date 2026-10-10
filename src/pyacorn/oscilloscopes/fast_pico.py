@@ -2,7 +2,7 @@ import math
 
 from pyacorn.chains import Body, Batcher, Lambda
 import pyacorn.chains.protocol as chainable
-from pyacorn.serial_adapter import Packet
+from .serial_adapter import Packet
 
 from .base import Oscilloscope as BaseOscilloscope, Metadata, BasicChainSettings, Parameters, SampleMetadata
 import numpy as np
