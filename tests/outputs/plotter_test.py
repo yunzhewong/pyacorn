@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
 
-from pyacorn.outputs.plotter import Attributes, Values
+from pyacorn.oscilloscopes.base import BasicChainSettings
+from pyacorn.outputs.plotter import Attributes, Values, calculate_buffer_size
+
+
+def test_calculate_buffer_size():
+    assert calculate_buffer_size(BasicChainSettings(downsample_multiplier=1, frame_rate=60), plot_duration_s=1) == 60
+    assert calculate_buffer_size(BasicChainSettings(downsample_multiplier=50, frame_rate=30), plot_duration_s=10) == 300
 
 
 def test_create():

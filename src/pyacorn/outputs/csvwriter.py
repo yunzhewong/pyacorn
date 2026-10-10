@@ -7,7 +7,7 @@ from pyacorn.chains.base import Tail
 
 
 def write_header(column_names: list[str]) -> str:
-    return f"Time (s), {' ,'.join(column_names)}\n"
+    return f"Time (s), {', '.join(column_names)}\n"
 
 
 @dataclass

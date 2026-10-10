@@ -1,4 +1,3 @@
-import math
 import threading
 import time
 from collections.abc import Callable
@@ -9,18 +8,11 @@ from matplotlib import pyplot as plt
 from numpy.typing import NDArray
 
 from pyacorn.chains.base import Tail
-from pyacorn.oscilloscopes.base import BasicChainSettings, Parameters
+from pyacorn.oscilloscopes.base import BasicChainSettings
 
 
-def calculate_buffer_size(parameters: Parameters, settings: BasicChainSettings, plot_duration: float):
-    readings_in_data_packet = math.floor(
-        settings.calc_packets_per_update(parameters=parameters)
-        * parameters.samples_per_packet
-        / settings.downsample_multiplier
-    )
-    readings_spacing = parameters.spacing_s * settings.downsample_multiplier
-    readings_in_buffer = plot_duration / readings_spacing
-    return math.ceil(readings_in_buffer / readings_in_data_packet)
+def calculate_buffer_size(settings: BasicChainSettings, plot_duration_s: float):
+    return plot_duration_s * settings.frame_rate
 
 
 @dataclass

@@ -15,8 +15,8 @@ from pyacorn.oscilloscopes.serial_adapter import Packet
 from pyacorn.outputs import plotter
 from pyacorn.outputs.shared import register_stop_on_sigint
 
-settings = BasicChainSettings(downsample_multiplier=1)
-PLOT_DURATION = 0.005
+settings = BasicChainSettings(downsample_multiplier=1000)
+PLOT_DURATION = 1
 
 if __name__ == "__main__":
 
@@ -42,9 +42,8 @@ if __name__ == "__main__":
     data_packer = fast_pico.BasicChain(settings=settings)
     buffer = Buffer[Packet[SampleMetadata, npt.NDArray[np.float32]]](
         max_size=plotter.calculate_buffer_size(
-            parameters=fast_pico.PARAMETERS,
             settings=settings,
-            plot_duration=PLOT_DURATION,
+            plot_duration_s=PLOT_DURATION,
         )
     )
     to_plotvalues_lambda = Lambda(func=to_plot_values)
