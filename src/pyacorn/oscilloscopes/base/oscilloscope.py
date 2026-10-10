@@ -2,7 +2,7 @@ import signal
 import threading
 
 from pyacorn.chains.base import Head
-from pyacorn.oscilloscopes.structs import CAPTURE_BUFFER_SIZE, AcquisitionMode, Metadata
+from pyacorn.oscilloscopes.base.structs import CAPTURE_BUFFER_SIZE, AcquisitionMode, Metadata
 
 from .serial_adapter import (
     ByteMetadata,

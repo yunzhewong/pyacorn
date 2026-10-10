@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from numpy.typing import NDArray
 
 from pyacorn.chains.base import Tail
-from pyacorn.oscilloscopes.base import BasicChainSettings
+from pyacorn.oscilloscopes.base.structs import BasicChainSettings
 
 
 def calculate_buffer_size(settings: BasicChainSettings, plot_duration_s: float):

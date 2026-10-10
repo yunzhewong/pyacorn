@@ -6,9 +6,9 @@ import numpy.typing as npt
 import pyacorn.chains.protocol as chainable
 from pyacorn.chains import Batcher, Body, Lambda
 
-from .base import BasicChainSettings, Metadata, Parameters, SampleMetadata
-from .base import Oscilloscope as BaseOscilloscope
-from .serial_adapter import Packet
+from .base.oscilloscope import Oscilloscope as BaseOscilloscope
+from .base.serial_adapter import Packet
+from .base.structs import BasicChainSettings, Metadata, Parameters, SampleMetadata
 
 PARAMETERS = Parameters(samples_per_second=500_000, bytes_per_float=1)
 

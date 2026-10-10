@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pyacorn.oscilloscopes.base import BasicChainSettings
+from pyacorn.oscilloscopes.base.structs import BasicChainSettings
 from pyacorn.outputs.plotter import Attributes, Values, calculate_buffer_size
 
 

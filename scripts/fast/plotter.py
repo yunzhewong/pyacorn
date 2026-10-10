@@ -4,14 +4,14 @@ import numpy.typing as npt
 import pyacorn.oscilloscopes.fast_pico as fast_pico
 from pyacorn.chains import Lambda
 from pyacorn.chains.buffer import Buffer
-from pyacorn.oscilloscopes.base import (
+from pyacorn.oscilloscopes.base.serial_adapter import Packet
+from pyacorn.oscilloscopes.base.structs import (
     MAX_VOLTAGE,
     MIN_VOLTAGE,
     AcquisitionMode,
     BasicChainSettings,
     SampleMetadata,
 )
-from pyacorn.oscilloscopes.serial_adapter import Packet
 from pyacorn.outputs import plotter
 
 settings = BasicChainSettings(downsample_multiplier=1000)
