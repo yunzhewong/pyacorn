@@ -65,12 +65,10 @@ class AcquisitionMode:
         return frame_count >= self.frames
 
     @staticmethod
-    def single():
-        return AcquisitionMode(frames=1)
-
-    @staticmethod
-    def multiple(frames: int):
-        return AcquisitionMode(frames=frames)
+    def until_frames_captured(min_frames: int, settings: BasicChainSettings, parameters: Parameters):
+        packets_per_update = settings.calc_packets_per_update(parameters=parameters)
+        actual_frames = math.ceil(min_frames / packets_per_update) * packets_per_update 
+        return AcquisitionMode(frames=actual_frames)
 
     @staticmethod
     def continuous():
@@ -111,8 +109,6 @@ class Oscilloscope(Head[Packet[Metadata, bytes]]):
         return self._complete_event.is_set()
 
     def _handle_packet(self, packet: Packet[ByteMetadata, bytes]):
-        if self._complete_event.is_set():
-            return
         packet_counter = self._rollover_count_history.account_for_rollover(packet.metadata.rolling_packet_counter)
         start_sample = packet_counter * CAPTURE_BUFFER_SIZE
         self.initiate(Packet(metadata=Metadata(start_sample=start_sample), data=packet.data))

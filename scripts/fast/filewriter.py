@@ -1,5 +1,3 @@
-import time
-
 import numpy.typing as npt
 import numpy as np
 
@@ -21,14 +19,11 @@ if __name__ == "__main__":
     oscilloscope = fast_pico.Oscilloscope(port="/dev/ttyACM0")
     data_packer = fast_pico.BasicChain(settings=settings)
     to_values_lambda = Lambda(func=to_values)
-    csvwriter_tail = csvwriter.CSVWriter(filepath="test.txt", column_names=["Voltage"])
+    output = csvwriter.CSVWriter(filepath="test.txt", column_names=["Voltage (V)"])
 
     oscilloscope.chain(data_packer)
     data_packer.chain(to_values_lambda)
-    to_values_lambda.chain(csvwriter_tail)
+    to_values_lambda.chain(output)
 
     register_stop_on_sigint(oscilloscope=oscilloscope)
-    oscilloscope.acquire(acquisition_mode=AcquisitionMode.multiple(5))
-
-    while not oscilloscope.is_complete():
-        time.sleep(0.1)
+    oscilloscope.acquire(acquisition_mode=AcquisitionMode.until_frames_captured(min_frames=int(500_000/2000), settings=settings, parameters=fast_pico.PARAMETERS))

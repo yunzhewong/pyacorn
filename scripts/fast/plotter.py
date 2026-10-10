@@ -32,16 +32,16 @@ if __name__ == "__main__":
     data_packer = fast_pico.BasicChain(settings=settings)
     buffer = Buffer[Packet[SampleMetadata, npt.NDArray[np.float32]]](max_size=plotter.calculate_buffer_size(parameters=fast_pico.PARAMETERS, settings=settings, plot_duration=PLOT_DURATION))
     to_plotvalues_lambda = Lambda(func=to_plot_values)
-    plotter_tail = plotter.Plotter(min=MIN_VOLTAGE, max=MAX_VOLTAGE)
+    output = plotter.Plotter(min=MIN_VOLTAGE, max=MAX_VOLTAGE)
 
     oscilloscope.chain(data_packer)
     data_packer.chain(buffer)
     buffer.chain(to_plotvalues_lambda)
-    to_plotvalues_lambda.chain(plotter_tail)
+    to_plotvalues_lambda.chain(output)
 
     register_stop_on_sigint(oscilloscope=oscilloscope)
     
     oscilloscope.acquire(acquisition_mode=AcquisitionMode.continuous())
 
-    plotter_tail.block(should_stop=oscilloscope.is_complete)
-    plotter_tail.show()
+    output.block(should_stop=oscilloscope.is_complete)
+    output.show()
