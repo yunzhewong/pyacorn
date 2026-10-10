@@ -1,20 +1,31 @@
-import numpy.typing as npt
 import numpy as np
-
-from pyacorn.oscilloscopes.base import AcquisitionMode, BasicChainSettings, SampleMetadata
-from pyacorn.outputs import csvwriter
-from pyacorn.outputs.shared import register_stop_on_sigint
-from pyacorn.chains import Lambda
-from pyacorn.oscilloscopes.serial_adapter import Packet
+import numpy.typing as npt
 
 import pyacorn.oscilloscopes.fast_pico as fast_pico
+from pyacorn.chains import Lambda
+from pyacorn.oscilloscopes.base import (
+    AcquisitionMode,
+    BasicChainSettings,
+    SampleMetadata,
+)
+from pyacorn.oscilloscopes.serial_adapter import Packet
+from pyacorn.outputs import csvwriter
+from pyacorn.outputs.shared import register_stop_on_sigint
 
 settings = BasicChainSettings(downsample_multiplier=1)
 
 if __name__ == "__main__":
-    def to_values(packet: Packet[SampleMetadata, npt.NDArray[np.float32]]) -> csvwriter.Values:
-        times = np.arange(len(packet.data)) * packet.metadata.spacing_s + packet.metadata.start_time
-        return csvwriter.Values(timestamped_values=np.column_stack([times, packet.data]))
+
+    def to_values(
+        packet: Packet[SampleMetadata, npt.NDArray[np.float32]],
+    ) -> csvwriter.Values:
+        times = (
+            np.arange(len(packet.data)) * packet.metadata.spacing_s
+            + packet.metadata.start_time
+        )
+        return csvwriter.Values(
+            timestamped_values=np.column_stack([times, packet.data])
+        )
 
     oscilloscope = fast_pico.Oscilloscope(port="/dev/ttyACM0")
     data_packer = fast_pico.BasicChain(settings=settings)
@@ -26,4 +37,10 @@ if __name__ == "__main__":
     to_values_lambda.chain(output)
 
     register_stop_on_sigint(oscilloscope=oscilloscope)
-    oscilloscope.acquire(acquisition_mode=AcquisitionMode.until_frames_captured(min_frames=int(500_000/2000), settings=settings, parameters=fast_pico.PARAMETERS))
+    oscilloscope.acquire(
+        acquisition_mode=AcquisitionMode.until_frames_captured(
+            min_frames=int(500_000 / 2000),
+            settings=settings,
+            parameters=fast_pico.PARAMETERS,
+        )
+    )

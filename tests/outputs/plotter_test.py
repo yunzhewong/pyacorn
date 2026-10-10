@@ -1,10 +1,10 @@
-from dataclasses import dataclass
 import threading
+from dataclasses import dataclass
 
+import numpy as np
 import pytest
 
 from pyacorn.outputs.plotter import Values
-import numpy as np
 
 
 @dataclass
@@ -15,7 +15,11 @@ class Attributes:
 
     @staticmethod
     def create(frames_per_second: float):
-        return Attributes(_values=None, _lock=threading.Lock(), seconds_per_frame=1 / frames_per_second)
+        return Attributes(
+            _values=None,
+            _lock=threading.Lock(),
+            seconds_per_frame=1 / frames_per_second,
+        )
 
     def change_values(self, new_values: Values):
         with self._lock:
@@ -31,18 +35,23 @@ class Attributes:
             return duration
         return 0
 
+
 def test_create():
     created = Attributes.create(frames_per_second=100)
     assert created._values is None
     assert created.seconds_per_frame == 0.01
 
+
 def test_change_and_get():
     created = Attributes.create(frames_per_second=100)
 
-    new_values = Values(times=np.zeros(100, dtype=np.float32), values=np.zeros(100, dtype=np.float32))
+    new_values = Values(
+        times=np.zeros(100, dtype=np.float32), values=np.zeros(100, dtype=np.float32)
+    )
     created.change_values(new_values=new_values)
     assert created._values == new_values
-    assert created.get_values() == new_values 
+    assert created.get_values() == new_values
+
 
 def test_calc_sleep():
     created = Attributes.create(frames_per_second=100)

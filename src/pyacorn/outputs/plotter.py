@@ -1,25 +1,35 @@
-from dataclasses import dataclass
 import math
 import threading
 import time
-from typing import Callable
+from collections.abc import Callable
+from dataclasses import dataclass
 
-from matplotlib import pyplot as plt
 import numpy as np
+from matplotlib import pyplot as plt
 from numpy.typing import NDArray
+
 from pyacorn.chains.base import Tail
 from pyacorn.oscilloscopes.base import BasicChainSettings, Parameters
 
-def calculate_buffer_size(parameters: Parameters, settings: BasicChainSettings, plot_duration: float):
-    readings_in_data_packet = math.floor(settings.calc_packets_per_update(parameters=parameters) * parameters.samples_per_packet / settings.downsample_multiplier)
+
+def calculate_buffer_size(
+    parameters: Parameters, settings: BasicChainSettings, plot_duration: float
+):
+    readings_in_data_packet = math.floor(
+        settings.calc_packets_per_update(parameters=parameters)
+        * parameters.samples_per_packet
+        / settings.downsample_multiplier
+    )
     readings_spacing = parameters.spacing_s * settings.downsample_multiplier
     readings_in_buffer = plot_duration / readings_spacing
     return math.ceil(readings_in_buffer / readings_in_data_packet)
+
 
 @dataclass
 class Values:
     times: NDArray[np.float32]
     values: NDArray[np.float32]
+
 
 @dataclass
 class Attributes:
@@ -29,7 +39,9 @@ class Attributes:
 
     @staticmethod
     def create(frames_per_second: float):
-        return Attributes(values=None, lock=threading.Lock(), seconds_per_frame=1 / frames_per_second)
+        return Attributes(
+            values=None, lock=threading.Lock(), seconds_per_frame=1 / frames_per_second
+        )
 
     def change_values(self, new_values: Values):
         with self.lock:
@@ -45,16 +57,18 @@ class Attributes:
             return duration
         return 0
 
+
 FRAME_LIMIT = 60
+
 
 class Plotter(Tail[Values]):
     def __init__(self, min: float, max: float, frames_per_second: int = FRAME_LIMIT):
         super().__init__()
-        self._attributes = Attributes.create(frames_per_second=frames_per_second) 
+        self._attributes = Attributes.create(frames_per_second=frames_per_second)
 
         plt.ion()
         self.fig, self.ax = plt.subplots()
-        self.line, = self.ax.plot([], [], 'b-')
+        (self.line,) = self.ax.plot([], [], "b-")
         self.ax.set_ylim(bottom=min, top=max)
         plt.pause(self._attributes.seconds_per_frame)
 
@@ -67,18 +81,22 @@ class Plotter(Tail[Values]):
 
             plot_values = self._attributes.get_values()
             if plot_values is not None:
-                self.ax.set_xlim(left=float(np.min(plot_values.times)), right=float(np.max(plot_values.times)))
+                self.ax.set_xlim(
+                    left=float(np.min(plot_values.times)),
+                    right=float(np.max(plot_values.times)),
+                )
                 self.line.set_xdata(plot_values.times)
                 self.line.set_ydata(plot_values.values)
                 self.fig.canvas.draw()
                 self.fig.canvas.flush_events()
 
-            time.sleep(self._attributes.calc_sleep_duration(elapsed_time=time.monotonic() - start_time))
+            time.sleep(
+                self._attributes.calc_sleep_duration(
+                    elapsed_time=time.monotonic() - start_time
+                )
+            )
 
     def show(self):
         print("Acquisition Complete - Close plot when done")
         plt.ioff()
         plt.show()
-
-
-

@@ -1,8 +1,7 @@
-from typing import Callable, Generic, TypeVar
+from collections.abc import Callable
 
-I = TypeVar("I")
 
-class CallbackMap(Generic[I]):
+class CallbackMap[I]:
     def __init__(self):
         self.d: dict[int, Callable[[I], None]] = {}
         self.key_counter = 0
