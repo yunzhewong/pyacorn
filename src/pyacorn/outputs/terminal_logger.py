@@ -19,9 +19,7 @@ class TerminalLogger(Tail[Values]):
 
     def execute(self, data: Values):
         print(
-            "\b" * self.written_characters
-            + " " * self.written_characters
-            + "\b" * self.written_characters,
+            "\b" * self.written_characters + " " * self.written_characters + "\b" * self.written_characters,
             end="",
         )
         log_data = data.to_log_data()

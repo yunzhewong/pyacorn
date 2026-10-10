@@ -32,8 +32,7 @@ if __name__ == "__main__":
         for packet in packets:
             stop_index = run_index + len(packet.data)
             times[run_index:stop_index] = (
-                np.arange(len(packet.data)) * packet.metadata.spacing_s
-                + packet.metadata.start_time
+                np.arange(len(packet.data)) * packet.metadata.spacing_s + packet.metadata.start_time
             )
             values[run_index:stop_index] = packet.data
             run_index = stop_index

@@ -12,9 +12,7 @@ from pyacorn.chains.base import Tail
 from pyacorn.oscilloscopes.base import BasicChainSettings, Parameters
 
 
-def calculate_buffer_size(
-    parameters: Parameters, settings: BasicChainSettings, plot_duration: float
-):
+def calculate_buffer_size(parameters: Parameters, settings: BasicChainSettings, plot_duration: float):
     readings_in_data_packet = math.floor(
         settings.calc_packets_per_update(parameters=parameters)
         * parameters.samples_per_packet
@@ -39,9 +37,7 @@ class Attributes:
 
     @staticmethod
     def create(frames_per_second: float):
-        return Attributes(
-            values=None, lock=threading.Lock(), seconds_per_frame=1 / frames_per_second
-        )
+        return Attributes(values=None, lock=threading.Lock(), seconds_per_frame=1 / frames_per_second)
 
     def change_values(self, new_values: Values):
         with self.lock:
@@ -90,11 +86,7 @@ class Plotter(Tail[Values]):
                 self.fig.canvas.draw()
                 self.fig.canvas.flush_events()
 
-            time.sleep(
-                self._attributes.calc_sleep_duration(
-                    elapsed_time=time.monotonic() - start_time
-                )
-            )
+            time.sleep(self._attributes.calc_sleep_duration(elapsed_time=time.monotonic() - start_time))
 
     def show(self):
         print("Acquisition Complete - Close plot when done")

@@ -19,10 +19,7 @@ if __name__ == "__main__":
     def to_values(
         packet: Packet[SampleMetadata, npt.NDArray[np.float32]],
     ) -> terminal_logger.Values:
-        time_centre = (
-            packet.metadata.start_time
-            + ((len(packet.data) - 1) / 2) * packet.metadata.spacing_s
-        )
+        time_centre = packet.metadata.start_time + ((len(packet.data) - 1) / 2) * packet.metadata.spacing_s
         average_value = np.mean(packet.data)
         return terminal_logger.Values(time=time_centre, text=f"{(average_value):.2f}")
 

@@ -8,9 +8,7 @@ from pyacorn.chains.base import Tail
 
 @dataclass
 class Values:
-    timestamped_values: npt.NDArray[
-        np.float32
-    ]  # N x (1 + number_of_columns), first column is time in seconds
+    timestamped_values: npt.NDArray[np.float32]  # N x (1 + number_of_columns), first column is time in seconds
 
 
 class CSVWriter(Tail[Values]):

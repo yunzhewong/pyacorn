@@ -19,13 +19,8 @@ if __name__ == "__main__":
     def to_values(
         packet: Packet[SampleMetadata, npt.NDArray[np.float32]],
     ) -> csvwriter.Values:
-        times = (
-            np.arange(len(packet.data)) * packet.metadata.spacing_s
-            + packet.metadata.start_time
-        )
-        return csvwriter.Values(
-            timestamped_values=np.column_stack([times, packet.data])
-        )
+        times = np.arange(len(packet.data)) * packet.metadata.spacing_s + packet.metadata.start_time
+        return csvwriter.Values(timestamped_values=np.column_stack([times, packet.data]))
 
     oscilloscope = fast_pico.Oscilloscope(port="/dev/ttyACM0")
     data_packer = fast_pico.BasicChain(settings=settings)

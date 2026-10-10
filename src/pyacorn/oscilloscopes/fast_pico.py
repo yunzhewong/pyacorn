@@ -17,9 +17,7 @@ class Oscilloscope(BaseOscilloscope):
     pass
 
 
-class BasicChain(
-    Body[Packet[Metadata, bytes], Packet[SampleMetadata, npt.NDArray[np.float32]]]
-):
+class BasicChain(Body[Packet[Metadata, bytes], Packet[SampleMetadata, npt.NDArray[np.float32]]]):
     def __init__(self, settings: BasicChainSettings):
         def to_data_packet(
             packets: list[Packet[Metadata, bytes]],
@@ -30,9 +28,7 @@ class BasicChain(
 
             start_time = packets[0].metadata.start_sample * PARAMETERS.spacing_s
             spacing_s = PARAMETERS.spacing_s * settings.downsample_multiplier
-            downsampled_count = math.floor(
-                total_values / settings.downsample_multiplier
-            )
+            downsampled_count = math.floor(total_values / settings.downsample_multiplier)
             int_values = np.zeros(downsampled_count, dtype=np.uint8)
 
             value_index = 0
@@ -62,9 +58,7 @@ class BasicChain(
 
         self.batcher.chain(self.to_data_lambda)
 
-    def chain(
-        self, item: chainable.Upstream[Packet[SampleMetadata, npt.NDArray[np.float32]]]
-    ):
+    def chain(self, item: chainable.Upstream[Packet[SampleMetadata, npt.NDArray[np.float32]]]):
         self.to_data_lambda.chain(item)
         return item
 

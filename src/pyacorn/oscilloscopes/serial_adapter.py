@@ -141,12 +141,8 @@ class SerialPacketHandler:
     def start(self):
         self._abort_event.clear()
         self._threads = [
-            threading.Thread(
-                target=self.serial_connection.handle, args=(self._abort_event,)
-            ),
-            threading.Thread(
-                target=self.packet_handler.handle, args=(self._abort_event,)
-            ),
+            threading.Thread(target=self.serial_connection.handle, args=(self._abort_event,)),
+            threading.Thread(target=self.packet_handler.handle, args=(self._abort_event,)),
         ]
         for thread in self._threads:
             thread.start()
@@ -171,9 +167,7 @@ class RolloverCountHistory:
             self.last_accounted = 0
             return self.last_accounted
 
-        rollover_difference = (
-            rollover_count + ROLLOVER_VALUE - self.last_rollover
-        ) % ROLLOVER_VALUE
+        rollover_difference = (rollover_count + ROLLOVER_VALUE - self.last_rollover) % ROLLOVER_VALUE
         self.last_rollover = rollover_count
         self.last_accounted += rollover_difference
         return self.last_accounted
