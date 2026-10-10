@@ -6,6 +6,10 @@ import numpy.typing as npt
 from pyacorn.chains.base import Tail
 
 
+def write_header(column_names: list[str]) -> str:
+    return f"Time (s), {' ,'.join(column_names)}\n"
+
+
 @dataclass
 class Values:
     timestamped_values: npt.NDArray[np.float32]  # N x (1 + number_of_columns), first column is time in seconds
@@ -13,9 +17,8 @@ class Values:
 
 class CSVWriter(Tail[Values]):
     def __init__(self, filepath: str, column_names: list[str]):
-        self.column_names = column_names
         with open(filepath, "w") as f:
-            f.write(f"Time (s), {' ,'.join(column_names)}\n")
+            f.write(write_header(column_names=column_names))
         self.append_file = open(filepath, "a")
 
     def execute(self, data: Values):

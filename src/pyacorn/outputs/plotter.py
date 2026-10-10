@@ -29,23 +29,19 @@ class Values:
     values: NDArray[np.float32]
 
 
-@dataclass
 class Attributes:
-    values: Values | None
-    lock: threading.Lock
-    seconds_per_frame: float
-
-    @staticmethod
-    def create(frames_per_second: float):
-        return Attributes(values=None, lock=threading.Lock(), seconds_per_frame=1 / frames_per_second)
+    def __init__(self, frames_per_second: float):
+        self._values = None
+        self._lock = threading.Lock()
+        self.seconds_per_frame = 1 / frames_per_second
 
     def change_values(self, new_values: Values):
-        with self.lock:
-            self.values = new_values
+        with self._lock:
+            self._values = new_values
 
     def get_values(self):
-        with self.lock:
-            return self.values
+        with self._lock:
+            return self._values
 
     def calc_sleep_duration(self, elapsed_time: float):
         duration = self.seconds_per_frame - elapsed_time
@@ -60,7 +56,7 @@ FRAME_LIMIT = 60
 class Plotter(Tail[Values]):
     def __init__(self, min: float, max: float, frames_per_second: int = FRAME_LIMIT):
         super().__init__()
-        self._attributes = Attributes.create(frames_per_second=frames_per_second)
+        self._attributes = Attributes(frames_per_second=frames_per_second)
 
         plt.ion()
         self.fig, self.ax = plt.subplots()
