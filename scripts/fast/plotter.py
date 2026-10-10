@@ -13,7 +13,6 @@ from pyacorn.oscilloscopes.base import (
 )
 from pyacorn.oscilloscopes.serial_adapter import Packet
 from pyacorn.outputs import plotter
-from pyacorn.outputs.shared import register_stop_on_sigint
 
 settings = BasicChainSettings(downsample_multiplier=1000)
 PLOT_DURATION = 1
@@ -54,8 +53,7 @@ if __name__ == "__main__":
     buffer.chain(to_plotvalues_lambda)
     to_plotvalues_lambda.chain(output)
 
-    register_stop_on_sigint(oscilloscope=oscilloscope)
-
+    oscilloscope.register_stop_on_sigint()
     oscilloscope.acquire(acquisition_mode=AcquisitionMode.continuous())
 
     output.block(should_stop=oscilloscope.is_complete)

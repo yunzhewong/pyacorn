@@ -1,4 +1,5 @@
 import math
+import signal
 import threading
 from dataclasses import dataclass
 
@@ -135,3 +136,6 @@ class Oscilloscope(Head[Packet[Metadata, bytes]]):
             self._counter += 1
             if self._acquisition_mode.is_complete(frame_count=self._counter):
                 self._complete_event.set()
+
+    def register_stop_on_sigint(self):
+        signal.signal(signal.SIGINT, lambda _signum, _frame: self.stop())
